@@ -5,7 +5,7 @@
 **Data de Corte:** 13/11/2026  
 
 ## 1. Acesso ao Protótipo
-- **Link público interativo (Web e Android):** https://tocoamora-sousa.github.io/lume-enem/
+- **Link público interativo (Web e Android):** https://tocoamora-sousa.github.io/lume-educacao/
 - **Código-fonte no repositório:** [`prototipo/index.html`](../prototipo/index.html)
 
 ## 2. Resumo da Entrega
