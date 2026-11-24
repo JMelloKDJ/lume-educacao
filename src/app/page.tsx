@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { Activity, Moon, Plus, Send, Sun } from "lucide-react";
+import { Moon, PanelLeft, Plus, Send, Sun, Trash2, X } from "lucide-react";
 import { MarkdownBubble } from "@/components/MarkdownBubble";
 
 interface ChatItem {
@@ -19,6 +18,23 @@ interface OutboxRow {
   created_at: string;
 }
 
+interface TimelineRow {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+}
+
+interface SavedChat {
+  id: string;
+  title: string;
+  updatedAt: string;
+}
+
+const HISTORY_STORAGE_KEY = "lume_chat_history_v1";
+const ACTIVE_CHAT_STORAGE_KEY = "lume_active_chat_v1";
+const MAX_SAVED_CHATS = 30;
+
 const SUGGESTED_PROMPTS = [
   "Como estão o prazo e o orçamento do projeto hoje?",
   "Qual decisão você recomenda para o comitê?",
@@ -26,10 +42,55 @@ const SUGGESTED_PROMPTS = [
   "Quero registrar uma proposta de mudança para avaliação",
 ];
 
+function readSavedChats(): SavedChat[] {
+  try {
+    const raw = window.localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (c): c is SavedChat =>
+        c &&
+        typeof c.id === "string" &&
+        typeof c.title === "string" &&
+        typeof c.updatedAt === "string"
+    );
+  } catch {
+    return [];
+  }
+}
+
+function writeSavedChats(chats: SavedChat[]) {
+  try {
+    window.localStorage.setItem(
+      HISTORY_STORAGE_KEY,
+      JSON.stringify(chats.slice(0, MAX_SAVED_CHATS))
+    );
+  } catch {
+    // ignore storage quota errors
+  }
+}
+
+function formatChatDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+  } catch {
+    return "";
+  }
+}
+
 export default function LumeChatPage() {
   const [dark, setDark] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [history, setHistory] = useState<SavedChat[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [items, setItems] = useState<ChatItem[]>([]);
+  const [loadingChat, setLoadingChat] = useState(false);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -46,6 +107,73 @@ export default function LumeChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [items, isTyping]);
+
+  const upsertHistoryEntry = useCallback((id: string, titleCandidate?: string) => {
+    const nowIso = new Date().toISOString();
+    setHistory((prev) => {
+      const existing = prev.find((c) => c.id === id);
+      const title =
+        existing?.title ??
+        ((titleCandidate ?? "Conversa").trim().slice(0, 48) || "Conversa");
+      const next = [
+        { id, title, updatedAt: nowIso },
+        ...prev.filter((c) => c.id !== id),
+      ].slice(0, MAX_SAVED_CHATS);
+      writeSavedChats(next);
+      return next;
+    });
+  }, []);
+
+  const loadConversationById = useCallback(async (cid: string) => {
+    setLoadingChat(true);
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`/api/chat?conversationId=${encodeURIComponent(cid)}`);
+      if (!res.ok) {
+        setErrorMsg("Não foi possível carregar essa conversa.");
+        return;
+      }
+      const data = await res.json();
+      const outbox: OutboxRow[] = Array.isArray(data.outbox) ? data.outbox : [];
+      const timeline: TimelineRow[] = Array.isArray(data.timeline)
+        ? data.timeline
+        : [];
+
+      seenOutboxIdsRef.current = new Set(outbox.map((row) => row.id));
+      convIdRef.current = cid;
+      setConversationId(cid);
+      setItems(
+        timeline.map((row) => ({
+          id: row.id,
+          role: row.role,
+          content: row.content,
+        }))
+      );
+      setIsTyping(Boolean(data.isTyping));
+      try {
+        window.localStorage.setItem(ACTIVE_CHAT_STORAGE_KEY, cid);
+      } catch {
+        // ignore
+      }
+    } catch {
+      setErrorMsg("Erro de rede ao carregar conversa.");
+    } finally {
+      setLoadingChat(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const saved = readSavedChats();
+    setHistory(saved);
+    try {
+      const activeId = window.localStorage.getItem(ACTIVE_CHAT_STORAGE_KEY);
+      if (activeId) {
+        void loadConversationById(activeId);
+      }
+    } catch {
+      // ignore
+    }
+  }, [loadConversationById]);
 
   const syncConversation = useCallback(async (cid: string) => {
     try {
@@ -111,11 +239,20 @@ export default function LumeChatPage() {
             setIsTyping(false);
             return;
           }
-          if (data.conversationId && convIdRef.current !== data.conversationId) {
-            convIdRef.current = data.conversationId;
-            setConversationId(data.conversationId);
-          }
           if (data.conversationId) {
+            if (convIdRef.current !== data.conversationId) {
+              convIdRef.current = data.conversationId;
+              setConversationId(data.conversationId);
+              try {
+                window.localStorage.setItem(
+                  ACTIVE_CHAT_STORAGE_KEY,
+                  data.conversationId
+                );
+              } catch {
+                // ignore
+              }
+            }
+            upsertHistoryEntry(data.conversationId, text);
             await syncConversation(data.conversationId);
           }
         } catch (err) {
@@ -124,16 +261,33 @@ export default function LumeChatPage() {
         }
       });
     },
-    [input, syncConversation]
+    [input, syncConversation, upsertHistoryEntry]
   );
 
-  const resetConversation = () => {
+  const startNewConversation = () => {
     convIdRef.current = null;
     seenOutboxIdsRef.current = new Set();
     setConversationId(null);
     setItems([]);
     setIsTyping(false);
     setErrorMsg(null);
+    setDrawerOpen(false);
+    try {
+      window.localStorage.removeItem(ACTIVE_CHAT_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  };
+
+  const deleteHistoryEntry = (id: string) => {
+    setHistory((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      writeSavedChats(next);
+      return next;
+    });
+    if (convIdRef.current === id) {
+      startNewConversation();
+    }
   };
 
   return (
@@ -169,6 +323,16 @@ export default function LumeChatPage() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Abrir histórico de conversas"
+              title="Conversas anteriores"
+              className="lume-btn-ghost lume-icon-btn"
+            >
+              <PanelLeft size={16} />
+            </button>
+
             <div
               style={{
                 width: 34,
@@ -200,7 +364,7 @@ export default function LumeChatPage() {
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <button
               type="button"
-              onClick={resetConversation}
+              onClick={startNewConversation}
               className="lume-btn-ghost"
             >
               <Plus size={15} />
@@ -216,18 +380,123 @@ export default function LumeChatPage() {
             >
               {dark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-
-            <Link
-              href="/telemetry"
-              aria-label="Telemetria"
-              title="Telemetria"
-              className="lume-btn-ghost lume-icon-btn"
-            >
-              <Activity size={16} />
-            </Link>
           </div>
         </div>
       </header>
+
+      {/* History Drawer */}
+      {drawerOpen && (
+        <div
+          className="lume-drawer-backdrop"
+          onClick={() => setDrawerOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Histórico de conversas"
+        >
+          <aside
+            className="lume-drawer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                padding: "14px 16px",
+                borderBottom: "1px solid var(--border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+              }}
+            >
+              <span
+                className="font-display"
+                style={{ fontWeight: 700, fontSize: "15px" }}
+              >
+                Conversas
+              </span>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                aria-label="Fechar histórico"
+                className="lume-btn-ghost lume-icon-btn"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ padding: "12px", borderBottom: "1px solid var(--border)" }}>
+              <button
+                type="button"
+                onClick={startNewConversation}
+                className="lume-btn-ghost"
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                <Plus size={15} />
+                <span>Nova conversa</span>
+              </button>
+            </div>
+
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "10px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
+              }}
+            >
+              {history.length === 0 ? (
+                <p
+                  style={{
+                    margin: "24px 12px",
+                    fontSize: "13.5px",
+                    color: "var(--muted)",
+                    textAlign: "center",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Suas conversas recentes ficarão salvas aqui.
+                </p>
+              ) : (
+                history.map((chat) => {
+                  const active = chat.id === conversationId;
+                  return (
+                    <div
+                      key={chat.id}
+                      className={`lume-history-item${
+                        active ? " lume-history-item-active" : ""
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className="lume-history-select"
+                        onClick={() => {
+                          setDrawerOpen(false);
+                          void loadConversationById(chat.id);
+                        }}
+                      >
+                        <span className="lume-history-title">{chat.title}</span>
+                        <span className="lume-history-meta">
+                          {formatChatDate(chat.updatedAt)}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteHistoryEntry(chat.id)}
+                        aria-label="Remover conversa da lista"
+                        title="Remover da lista"
+                        className="lume-history-del"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </aside>
+        </div>
+      )}
 
       {/* Main chat timeline */}
       <main
@@ -242,7 +511,13 @@ export default function LumeChatPage() {
           gap: "14px",
         }}
       >
-        {items.length === 0 && (
+        {loadingChat && items.length === 0 && (
+          <div style={{ padding: "32px 0", textAlign: "center", color: "var(--muted)", fontSize: "14px" }}>
+            Carregando conversa...
+          </div>
+        )}
+
+        {!loadingChat && items.length === 0 && (
           <div
             style={{
               flex: 1,

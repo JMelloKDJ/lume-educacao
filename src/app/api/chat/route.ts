@@ -117,6 +117,18 @@ export async function GET(req: NextRequest) {
       [conversationId]
     );
 
+    const userMessages = await query<{
+      id: string;
+      content: string;
+      created_at: string;
+    }>(
+      `SELECT id, content, created_at::text
+       FROM lume_agent.messages
+       WHERE conversation_id = $1 AND role = 'user'
+       ORDER BY created_at ASC`,
+      [conversationId]
+    );
+
     const outbox = await query<{
       id: string;
       turn_id: string;
@@ -130,6 +142,37 @@ export async function GET(req: NextRequest) {
        ORDER BY created_at ASC, seq ASC`,
       [conversationId]
     );
+
+    const timeline = [
+      ...userMessages.map((m) => ({
+        id: m.id,
+        role: "user" as const,
+        content: m.content,
+        created_at: m.created_at,
+        seq: 0,
+        orderHint: 0,
+      })),
+      ...outbox.map((m) => ({
+        id: m.id,
+        role: "assistant" as const,
+        content: m.content,
+        created_at: m.created_at,
+        seq: m.seq,
+        orderHint: 1,
+      })),
+    ]
+      .sort((a, b) => {
+        const cmp = a.created_at.localeCompare(b.created_at);
+        if (cmp !== 0) return cmp;
+        if (a.orderHint !== b.orderHint) return a.orderHint - b.orderHint;
+        return a.seq - b.seq;
+      })
+      .map(({ id, role, content, created_at }) => ({
+        id,
+        role,
+        content,
+        created_at,
+      }));
 
     const actions = await query<{
       id: string;
@@ -151,6 +194,7 @@ export async function GET(req: NextRequest) {
       conversationId,
       isTyping: Boolean(typingRow?.is_typing),
       outbox,
+      timeline,
       actions,
       liveStatus: {
         dataStatus: liveStatus.dataStatus,
