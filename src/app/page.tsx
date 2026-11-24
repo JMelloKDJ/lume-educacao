@@ -2,14 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  Activity,
-  Moon,
-  Plus,
-  Send,
-  Sparkles,
-  Sun,
-} from "lucide-react";
+import { Activity, Moon, Plus, Send, Sun } from "lucide-react";
 import { MarkdownBubble } from "@/components/MarkdownBubble";
 
 interface ChatItem {
@@ -26,17 +19,11 @@ interface OutboxRow {
   created_at: string;
 }
 
-interface LiveStatus {
-  dataStatus: string;
-  controlesOk: number;
-  controlesTotal: number;
-}
-
 const SUGGESTED_PROMPTS = [
-  "Qual cenário (C1–C6) o Comitê Diretor deve aprovar e por quê?",
-  "Como estão M5, DORA e previsão da Release 2 hoje?",
-  "As reservas cobrem os riscos abertos? Onde está o scope creep?",
-  "Quero abrir uma SM para mitigar o R15 com R$ 8.000",
+  "Como estão o prazo e o orçamento do projeto hoje?",
+  "Qual decisão você recomenda para o comitê?",
+  "Quais são os principais riscos abertos no momento?",
+  "Quero registrar uma proposta de mudança para avaliação",
 ];
 
 export default function LumeChatPage() {
@@ -45,7 +32,6 @@ export default function LumeChatPage() {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [liveStatus, setLiveStatus] = useState<LiveStatus | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const seenOutboxIdsRef = useRef<Set<string>>(new Set());
@@ -61,23 +47,11 @@ export default function LumeChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [items, isTyping]);
 
-  useEffect(() => {
-    fetch("/api/chat")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.liveStatus) setLiveStatus(data.liveStatus);
-      })
-      .catch(() => {
-        // ignore initial status fetch errors
-      });
-  }, []);
-
   const syncConversation = useCallback(async (cid: string) => {
     try {
       const res = await fetch(`/api/chat?conversationId=${encodeURIComponent(cid)}`);
       if (!res.ok) return;
       const data = await res.json();
-      if (data.liveStatus) setLiveStatus(data.liveStatus);
       setIsTyping(Boolean(data.isTyping));
 
       const incoming: OutboxRow[] = Array.isArray(data.outbox) ? data.outbox : [];
@@ -100,8 +74,7 @@ export default function LumeChatPage() {
   }, []);
 
   useEffect(() => {
-    if (!conversationId) return;
-    if (!isTyping) return;
+    if (!conversationId || !isTyping) return;
 
     const timer = setInterval(() => {
       void syncConversation(conversationId);
@@ -179,126 +152,79 @@ export default function LumeChatPage() {
           position: "sticky",
           top: 0,
           zIndex: 20,
-          backdropFilter: "blur(18px)",
+          backdropFilter: "blur(16px)",
           background: "var(--glass)",
           borderBottom: "1px solid var(--border)",
         }}
       >
         <div
           style={{
-            maxWidth: "960px",
+            maxWidth: "820px",
             margin: "0 auto",
-            padding: "14px 20px",
+            padding: "12px 16px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             gap: "12px",
-            flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: "14px",
-                background: "linear-gradient(135deg, #7C5CFC, #FF7A59)",
+                width: 34,
+                height: 34,
+                borderRadius: "10px",
+                background: "#081628",
+                border: "1px solid rgba(201, 162, 39, 0.55)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#fff",
-                boxShadow: "var(--shadow-float)",
+                color: "#FFFFFF",
+                fontWeight: 700,
+                fontSize: "15px",
+                letterSpacing: "-0.02em",
+                flexShrink: 0,
               }}
+              className="font-display"
             >
-              <Sparkles size={19} />
+              L
             </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span className="font-display" style={{ fontWeight: 700, fontSize: "16px" }}>
-                  Lume Educação · Copiloto IA
-                </span>
-                <span
-                  className="font-mono"
-                  style={{
-                    fontSize: "11px",
-                    padding: "2px 8px",
-                    borderRadius: "var(--radius-pill)",
-                    background: "var(--lavender-50)",
-                    color: "var(--lavender-600)",
-                    border: "1px solid var(--lavender-200)",
-                  }}
-                >
-                  LE-15 / R13
-                </span>
-              </div>
-              <p style={{ margin: 0, fontSize: "12px", color: "var(--muted)" }}>
-                Conectado ao Supabase ({liveStatus ? `corte ${liveStatus.dataStatus} · ${liveStatus.controlesOk}/${liveStatus.controlesTotal} controles OK` : "carregando status..."})
-              </p>
-            </div>
+            <span
+              className="font-display"
+              style={{ fontWeight: 700, fontSize: "16px", letterSpacing: "-0.01em" }}
+            >
+              Lume Educação
+            </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <Link
-              href="/telemetry"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "7px 12px",
-                borderRadius: "var(--radius-pill)",
-                border: "1px solid var(--border)",
-                background: "var(--card)",
-                color: "var(--ink)",
-                fontSize: "12.5px",
-                fontWeight: 500,
-                textDecoration: "none",
-              }}
-            >
-              <Activity size={14} />
-              Telemetria
-            </Link>
-
             <button
               type="button"
               onClick={resetConversation}
-              title="Nova conversa"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "7px 12px",
-                borderRadius: "var(--radius-pill)",
-                border: "1px solid var(--border)",
-                background: "var(--card)",
-                color: "var(--ink)",
-                fontSize: "12.5px",
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
+              className="lume-btn-ghost"
             >
-              <Plus size={14} />
-              Nova
+              <Plus size={15} />
+              <span>Nova conversa</span>
             </button>
 
             <button
               type="button"
               onClick={() => setDark((d) => !d)}
               aria-label="Alternar tema"
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: "var(--radius-pill)",
-                border: "1px solid var(--border)",
-                background: "var(--card)",
-                color: "var(--ink)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-              }}
+              title="Alternar tema"
+              className="lume-btn-ghost lume-icon-btn"
             >
-              {dark ? <Sun size={15} /> : <Moon size={15} />}
+              {dark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
+
+            <Link
+              href="/telemetry"
+              aria-label="Telemetria"
+              title="Telemetria"
+              className="lume-btn-ghost lume-icon-btn"
+            >
+              <Activity size={16} />
+            </Link>
           </div>
         </div>
       </header>
@@ -308,9 +234,9 @@ export default function LumeChatPage() {
         style={{
           flex: 1,
           width: "100%",
-          maxWidth: "880px",
+          maxWidth: "820px",
           margin: "0 auto",
-          padding: "24px 20px 110px 20px",
+          padding: "24px 16px 112px 16px",
           display: "flex",
           flexDirection: "column",
           gap: "14px",
@@ -319,57 +245,35 @@ export default function LumeChatPage() {
         {items.length === 0 && (
           <div
             style={{
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-card)",
-              padding: "28px",
-              boxShadow: "var(--shadow-soft)",
-              marginTop: "20px",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              padding: "24px 0",
+              gap: "24px",
             }}
           >
             <h1
               className="font-display"
-              style={{ margin: "0 0 8px 0", fontSize: "22px", fontWeight: 700 }}
+              style={{
+                margin: 0,
+                fontSize: "clamp(1.375rem, 3.2vw, 1.75rem)",
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
+                color: "var(--ink)",
+                textAlign: "center",
+              }}
             >
-              Assistente Executivo & Operacional da Lume Educação
+              Como posso ajudar hoje?
             </h1>
-            <p
-              style={{
-                margin: "0 0 20px 0",
-                color: "var(--muted)",
-                fontSize: "14.5px",
-                lineHeight: 1.55,
-              }}
-            >
-              Consulte métricas vivas (M5/DORA, EVM, riscos/reservas, alçadas, equipe, OKRs e cenários{" "}
-              <code>C1–C6</code>), pesquise o Dossiê/Dicionário via RAG ou registre ações de governança.
-              Você pode enviar várias mensagens em sequência sem esperar a resposta anterior.
-            </p>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: "10px",
-              }}
-            >
+            <div className="lume-suggestion-grid">
               {SUGGESTED_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
                   onClick={() => sendMessage(prompt)}
-                  style={{
-                    textAlign: "left",
-                    padding: "12px 14px",
-                    borderRadius: "16px",
-                    border: "1px solid var(--lavender-200)",
-                    background: "var(--lavender-50)",
-                    color: "var(--ink)",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    lineHeight: 1.4,
-                  }}
+                  className="lume-suggestion-card"
                 >
                   {prompt}
                 </button>
@@ -390,19 +294,25 @@ export default function LumeChatPage() {
             >
               <div
                 style={{
-                  maxWidth: "82%",
-                  padding: "13px 17px",
-                  borderRadius: isUser ? "20px 20px 6px 20px" : "20px 20px 20px 6px",
-                  background: isUser
-                    ? "linear-gradient(135deg, #7C5CFC, #6747E6)"
-                    : "var(--card)",
-                  color: isUser ? "#FFFFFF" : "var(--ink)",
+                  maxWidth: "84%",
+                  padding: "12px 16px",
+                  borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                  background: isUser ? "var(--user-bubble)" : "var(--card)",
+                  color: isUser ? "var(--user-bubble-ink)" : "var(--ink)",
                   border: isUser ? "none" : "1px solid var(--border)",
-                  boxShadow: isUser ? "var(--shadow-float)" : "var(--shadow-soft)",
+                  boxShadow: "var(--shadow-subtle)",
                 }}
               >
                 {isUser ? (
-                  <p style={{ margin: 0, fontSize: "14.5px", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "15px",
+                      lineHeight: 1.55,
+                      whiteSpace: "pre-wrap",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
                     {item.content}
                   </p>
                 ) : (
@@ -417,11 +327,11 @@ export default function LumeChatPage() {
           <div style={{ display: "flex", justifyContent: "flex-start" }}>
             <div
               style={{
-                padding: "12px 16px",
-                borderRadius: "20px 20px 20px 6px",
+                padding: "11px 15px",
+                borderRadius: "16px 16px 16px 4px",
                 background: "var(--card)",
                 border: "1px solid var(--border)",
-                boxShadow: "var(--shadow-soft)",
+                boxShadow: "var(--shadow-subtle)",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "8px",
@@ -432,7 +342,7 @@ export default function LumeChatPage() {
                 <span className="typing-dot" />
                 <span className="typing-dot" />
               </span>
-              <span style={{ fontSize: "13px", color: "var(--muted)" }}>Digitando...</span>
+              <span style={{ fontSize: "13.5px", color: "var(--muted)" }}>Digitando...</span>
             </div>
           </div>
         )}
@@ -441,11 +351,11 @@ export default function LumeChatPage() {
           <div
             style={{
               padding: "10px 14px",
-              borderRadius: "14px",
-              background: "var(--rose-50)",
-              color: "var(--rose-500)",
-              fontSize: "13px",
-              border: "1px solid rgba(244,63,94,0.25)",
+              borderRadius: "12px",
+              background: "var(--danger-bg)",
+              color: "var(--danger-ink)",
+              fontSize: "13.5px",
+              border: "1px solid var(--border)",
             }}
           >
             {errorMsg}
@@ -462,10 +372,10 @@ export default function LumeChatPage() {
           bottom: 0,
           left: 0,
           right: 0,
-          backdropFilter: "blur(18px)",
+          backdropFilter: "blur(16px)",
           background: "var(--glass)",
           borderTop: "1px solid var(--border)",
-          padding: "12px 20px",
+          padding: "12px 16px max(12px, env(safe-area-inset-bottom))",
         }}
       >
         <form
@@ -474,7 +384,7 @@ export default function LumeChatPage() {
             sendMessage();
           }}
           style={{
-            maxWidth: "880px",
+            maxWidth: "820px",
             margin: "0 auto",
             display: "flex",
             gap: "10px",
@@ -485,40 +395,17 @@ export default function LumeChatPage() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Pergunte sobre EVM, M5, riscos, cenários ou peça uma ação no sistema..."
-            style={{
-              flex: 1,
-              padding: "13px 16px",
-              borderRadius: "var(--radius-input)",
-              border: "1px solid var(--border)",
-              background: "var(--card)",
-              color: "var(--ink)",
-              fontSize: "14.5px",
-              outline: "none",
-            }}
+            placeholder="Digite sua mensagem..."
+            aria-label="Mensagem"
+            className="lume-composer-input"
           />
           <button
             type="submit"
             disabled={!input.trim()}
-            style={{
-              padding: "13px 20px",
-              borderRadius: "var(--radius-pill)",
-              border: "none",
-              background: input.trim()
-                ? "linear-gradient(135deg, #7C5CFC, #6747E6)"
-                : "var(--border)",
-              color: input.trim() ? "#FFFFFF" : "var(--muted)",
-              fontWeight: 600,
-              fontSize: "14px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              cursor: input.trim() ? "pointer" : "not-allowed",
-              boxShadow: input.trim() ? "var(--shadow-float)" : "none",
-            }}
+            className="lume-send-btn"
           >
             <Send size={15} />
-            Enviar
+            <span>Enviar</span>
           </button>
         </form>
       </footer>

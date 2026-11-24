@@ -3,7 +3,7 @@
 Repositório oficial do projeto **Lume Educação** (Plataforma de estudos por assinatura para o ENEM, Feira de Santana/BA), reunindo modelagem de dados no Supabase, views SQL reativas, diagnósticos executivos, protótipo navegável e o Assistente de IA conectado em tempo real (`/api/chat`).
 
 ## Acesso em Produção
-- **Aplicação do Assistente de IA (`LE-15` / `R13`):** `[URL da Vercel a preencher após deploy]`
+- **Aplicação do Assistente de IA (`LE-15` / `R13`):** https://lume-educacao.vercel.app
 - **Painel de Telemetria do Agente:** `/telemetry`
 - **Protótipo Navegável (`R12` / `D17`):** https://tocoamora-sousa.github.io/lume-educacao/
 

@@ -33,7 +33,7 @@ export function MarkdownBubble({ content }: { content: string }) {
   const blocks = content.split(/\n{2,}/);
 
   return (
-    <div className="markdown-bubble text-[14.5px] leading-relaxed">
+    <div className="markdown-bubble">
       {blocks.map((block, bIdx) => {
         const lines = block.split("\n").map((l) => l.trimEnd());
         const isBulletList =

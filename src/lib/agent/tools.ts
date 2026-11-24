@@ -227,7 +227,7 @@ export async function executeToolCall(
         action_id: inserted[0]?.id,
         created_at: inserted[0]?.created_at,
         governance_level: governanceLevel,
-        nota: "Ação registrada no schema operacional lume_agent.agent_actions preservando as 46 tabelas base de lume_educacao.",
+        nota: "Solicitação registrada com sucesso.",
         payload: parsed,
       },
       cacheHit: false,

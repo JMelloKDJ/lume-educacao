@@ -90,7 +90,7 @@ export default function TelemetryPage() {
         minHeight: "100dvh",
         background: "var(--canvas)",
         color: "var(--ink)",
-        padding: "24px 20px 48px 20px",
+        padding: "24px 16px 48px 16px",
       }}
     >
       <div style={{ maxWidth: "1120px", margin: "0 auto" }}>
@@ -105,27 +105,12 @@ export default function TelemetryPage() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <Link
-              href="/"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 14px",
-                borderRadius: "var(--radius-pill)",
-                border: "1px solid var(--border)",
-                background: "var(--card)",
-                color: "var(--ink)",
-                textDecoration: "none",
-                fontSize: "13px",
-                fontWeight: 500,
-              }}
-            >
-              <ArrowLeft size={14} />
+            <Link href="/" className="lume-btn-ghost">
+              <ArrowLeft size={15} />
               Voltar ao Chat
             </Link>
             <h1 className="font-display" style={{ margin: 0, fontSize: "20px" }}>
-              Telemetria & Governança (`lume_agent`)
+              Telemetria e Governança
             </h1>
           </div>
 
@@ -133,18 +118,12 @@ export default function TelemetryPage() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
+            className="lume-btn-ghost"
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "8px 14px",
-              borderRadius: "var(--radius-pill)",
-              border: "1px solid var(--lavender-200)",
-              background: "var(--lavender-50)",
-              color: "var(--lavender-700)",
-              fontSize: "13px",
+              background: "var(--accent)",
+              color: "var(--accent-ink)",
+              borderColor: "var(--accent)",
               fontWeight: 600,
-              cursor: "pointer",
             }}
           >
             <RefreshCw size={14} />
@@ -156,9 +135,10 @@ export default function TelemetryPage() {
           <div
             style={{
               padding: "14px 16px",
-              borderRadius: "16px",
-              background: "var(--rose-50)",
-              color: "var(--rose-500)",
+              borderRadius: "12px",
+              background: "var(--danger-bg)",
+              color: "var(--danger-ink)",
+              border: "1px solid var(--border)",
               marginBottom: "18px",
             }}
           >
@@ -184,7 +164,7 @@ export default function TelemetryPage() {
               {
                 label: "Escalonamentos Flash",
                 value: String(data.summary.escalamentos_flash),
-                sub: "autônomos 2.5-flash",
+                sub: "autônomos 3.8-flash",
               },
               {
                 label: "Latência Média / P95",
@@ -212,9 +192,9 @@ export default function TelemetryPage() {
                 style={{
                   background: "var(--card)",
                   border: "1px solid var(--border)",
-                  borderRadius: "20px",
+                  borderRadius: "var(--radius-card)",
                   padding: "16px",
-                  boxShadow: "var(--shadow-soft)",
+                  boxShadow: "var(--shadow-subtle)",
                 }}
               >
                 <div style={{ fontSize: "12px", color: "var(--muted)" }}>{card.label}</div>
@@ -239,13 +219,13 @@ export default function TelemetryPage() {
             border: "1px solid var(--border)",
             borderRadius: "var(--radius-card)",
             padding: "20px",
-            boxShadow: "var(--shadow-soft)",
+            boxShadow: "var(--shadow-subtle)",
             marginBottom: "24px",
             overflowX: "auto",
           }}
         >
           <h2 className="font-display" style={{ margin: "0 0 14px 0", fontSize: "16px" }}>
-            Últimos Turnos (`lume_agent.turn_telemetry`)
+            Últimos turnos
           </h2>
           {!data || data.turns.length === 0 ? (
             <p style={{ margin: 0, color: "var(--muted)", fontSize: "13.5px" }}>
@@ -273,14 +253,14 @@ export default function TelemetryPage() {
                           padding: "2px 8px",
                           borderRadius: "999px",
                           background:
-                            t.status === "completed" ? "var(--mint-50)" : "var(--rose-50)",
-                          color: t.status === "completed" ? "var(--mint-600)" : "var(--rose-500)",
+                            t.status === "completed" ? "var(--success-bg)" : "var(--danger-bg)",
+                          color: t.status === "completed" ? "var(--success-ink)" : "var(--danger-ink)",
                         }}
                       >
                         {t.status}
                       </span>
                       {t.error_message && (
-                        <div style={{ color: "var(--rose-500)", marginTop: "4px" }}>
+                        <div style={{ color: "var(--danger-ink)", marginTop: "4px" }}>
                           {t.error_message}
                         </div>
                       )}
@@ -329,12 +309,12 @@ export default function TelemetryPage() {
             border: "1px solid var(--border)",
             borderRadius: "var(--radius-card)",
             padding: "20px",
-            boxShadow: "var(--shadow-soft)",
+            boxShadow: "var(--shadow-subtle)",
             overflowX: "auto",
           }}
         >
           <h2 className="font-display" style={{ margin: "0 0 14px 0", fontSize: "16px" }}>
-            Ações Registradas pelo Agente (`lume_agent.agent_actions`)
+            Ações registradas
           </h2>
           {!data || data.actions.length === 0 ? (
             <p style={{ margin: 0, color: "var(--muted)", fontSize: "13.5px" }}>

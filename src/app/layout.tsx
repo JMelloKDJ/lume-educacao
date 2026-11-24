@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
+  weight: ["600", "700"],
   variable: "--font-display",
 });
 
@@ -14,16 +14,10 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-  variable: "--font-mono",
-});
-
 export const metadata: Metadata = {
-  title: "Lume Educação — Assistente de IA PMO & Produto (LE-15)",
+  title: "Lume Educação — Assistente",
   description:
-    "Copiloto conversacional da Lume Educação conectado em tempo real ao Supabase (lume_educacao + RAG pgvector) para o Comitê Diretor e Boletim Surpresa.",
+    "Assistente executivo da Lume Educação para acompanhamento de projeto, riscos e decisões.",
 };
 
 export default function RootLayout({
@@ -34,7 +28,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${plusJakarta.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${plusJakarta.variable} ${inter.variable}`}
       suppressHydrationWarning
     >
       <body>{children}</body>
