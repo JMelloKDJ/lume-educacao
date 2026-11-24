@@ -1,0 +1,113 @@
+{
+  "meta": {
+    "projeto": "Lume Educação",
+    "ticket_jira": "LE-26",
+    "requisitos_relacionados": [
+      "R12",
+      "D17"
+    ],
+    "equipe_pmo": "Esquadrão Linha de Base",
+    "estilo": "Clean Pastel MLP (Light & Night Mode)",
+    "versao": "3.0",
+    "prototipo_url": "https://tocoamora-sousa.github.io/lume-enem/"
+  },
+  "color": {
+    "brand": {
+      "lavender_50": "#F5F2FF",
+      "lavender_100": "#EBE5FF",
+      "lavender_200": "#D9CEFF",
+      "lavender_500": "#7C5CFC",
+      "lavender_600": "#6747E6",
+      "lavender_700": "#5335C7",
+      "peach_50": "#FFF5F0",
+      "peach_100": "#FFE8DC",
+      "peach_400": "#FF9472",
+      "peach_500": "#FF7A59",
+      "peach_600": "#F26341"
+    },
+    "semantic_and_areas": {
+      "mint_50": "#EEFBF5",
+      "mint_100": "#D5F5E7",
+      "mint_500": "#10B981",
+      "mint_600": "#059669",
+      "sky_50": "#F0F8FF",
+      "sky_100": "#DEF0FF",
+      "sky_500": "#0EA5E9",
+      "sky_600": "#0284C7",
+      "butter_50": "#FFFDF0",
+      "butter_100": "#FEF6C7",
+      "butter_500": "#EAB308",
+      "butter_600": "#CA8A04",
+      "rose_50": "#FFF1F5",
+      "rose_100": "#FFE0EA",
+      "rose_500": "#F43F5E",
+      "rose_600": "#E11D48"
+    },
+    "surfaces_light": {
+      "canvas": "#FAF9FC",
+      "card": "#FFFFFF",
+      "border": "#EFEFF4",
+      "ink": "#1E1B2E",
+      "muted": "#6E6B7B"
+    },
+    "surfaces_dark": {
+      "canvas": "#0E0F1A",
+      "card": "#171929",
+      "border": "#272A40",
+      "ink": "#F1F0F9",
+      "muted": "#A2A1B8"
+    },
+    "pmo_governance": {
+      "navy": "#081628",
+      "gold": "#D4AF37",
+      "slate": "#4A4F57"
+    }
+  },
+  "typography": {
+    "display": {
+      "family": "Plus Jakarta Sans",
+      "weights": [
+        600,
+        700,
+        800
+      ],
+      "uso": "Titulos, KPIs, marca e secoes"
+    },
+    "body": {
+      "family": "Inter",
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ],
+      "uso": "Textos, enunciados ENEM, menus e formularios"
+    },
+    "mono": {
+      "family": "JetBrains Mono / System Mono",
+      "weights": [
+        600,
+        700
+      ],
+      "uso": "IDs LU-xxx, cronometro TRI e codigo Pix"
+    }
+  },
+  "radius": {
+    "input": "16px",
+    "card": "24px",
+    "hero": "28px",
+    "device_android": "46px",
+    "pill_button": "9999px"
+  },
+  "elevation": {
+    "soft": "0 4px 20px -2px rgba(30, 27, 46, 0.05)",
+    "float": "0 14px 36px -8px rgba(103, 71, 230, 0.18)",
+    "glass_light": "rgba(255, 255, 255, 0.82) + blur(18px)",
+    "glass_dark": "rgba(21, 23, 38, 0.84) + blur(18px)"
+  },
+  "breakpoints": {
+    "android_mobile": "< 640px (preview 392x790px + barra inferior flutuante)",
+    "tablet": "640px - 1023px",
+    "web_desktop": ">= 1024px (container max 1380px + sidebar flutuante 240px)"
+  }
+}
