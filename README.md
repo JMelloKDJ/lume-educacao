@@ -4,7 +4,7 @@ Repositório oficial do projeto **Lume Educação** (Plataforma de estudos por a
 
 ## Acesso em Produção
 - **Aplicação do Assistente de IA (`LE-15` / `R13`):** https://lume-educacao.vercel.app
-- **Painel de Telemetria do Agente:** `/telemetry`
+- **Painel de Telemetria do Agente (apenas desenvolvimento local):** `/telemetry` (desabilitado em produção com HTTP `404`)
 - **Protótipo Navegável (`R12` / `D17`):** https://tocoamora-sousa.github.io/lume-educacao/
 
 ## Arquitetura do Assistente de IA (`LE-15`)
@@ -36,5 +36,5 @@ npm run dev           # Sobe http://localhost:3000
 
 ## Contrato da API (`/api/chat`)
 - `POST /api/chat` `{ "conversationId"?: string, "message": string, "sync"?: boolean }` → `202` `{ conversationId, jobId, state }` (ou `200` com `messages` quando `sync=true`).
-- `GET /api/chat?conversationId=<uuid>` → `{ conversationId, isTyping, outbox, actions, liveStatus }`.
-- `GET /api/telemetry` → `{ liveStatus, summary, turns, actions, ragDocs }`.
+- `GET /api/chat?conversationId=<uuid>` → `{ conversationId, isTyping, timeline, outbox, actions, liveStatus }`.
+- `GET /api/telemetry` → `{ liveStatus, summary, turns, actions, ragDocs }` (restrito a desenvolvimento local; retorna HTTP `404` em produção).
