@@ -89,7 +89,7 @@ WITH bruto AS (
 
   UNION ALL
   SELECT
-    10, '10_avanco_informes', '17_avanco_semanal', 'Informes de avanço (sem carry-forward sintético)',
+    10, '10_avanco_informes', '17_avanco_semanal', 'Informes de avanço (inclui 5 carry-forwards do DICIONARIO.md)',
     COUNT(*) FILTER (WHERE semana_fim <= DATE '2026-10-30')::numeric, 173::numeric,
     COUNT(*) FILTER (WHERE semana_fim <= DATE '2026-11-13')::numeric, 177::numeric,
     COUNT(*)::numeric

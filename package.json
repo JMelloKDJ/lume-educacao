@@ -1,0 +1,33 @@
+{
+  "name": "lume-educacao-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lume Educação (ENGN62 - Grupo 4) — Assistente de IA PMO & Produto (LE-15 / R13)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test:gemini": "npx tsx scripts/test-gemini-25.ts",
+    "ingest:rag": "npx tsx scripts/ingest-rag.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "lucide-react": "^0.511.0",
+    "next": "^15.3.3",
+    "pg": "^8.16.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "adm-zip": "^0.5.16",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

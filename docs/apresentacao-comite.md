@@ -5,7 +5,7 @@
 **Instância decisora:** Comitê Diretor (`05_matriz_alcadas`)  
 **Formato do artefato PDF:** 13 slides em paisagem 16:9 (`docs/apresentacao-comite.pdf`), seguindo a identidade visual oficial da Lume Educação (`docs/design-tokens.json`, `docs/le26-design-system-lume.md`, `docs/guia_marca_design_system_lume_LE26.pdf`) e os números consolidados em `docs/le39-diagnostico-e-decisao.md`.
 
-> **Nota sobre o arquivo binário PDF:** o arquivo `apresentacao-comite.pdf` (13 slides, 16:9) foi gerado, validado visualmente página a página e anexado diretamente ao card Jira `LE-17`. Como a integração automatizada do GitHub aceita apenas conteúdo UTF-8 de texto, este documento consolida a estrutura completa Top-Down, Action Titles e inventário de dados do deck; o binário `docs/apresentacao-comite.pdf` pode ser adicionado localmente à `main` a partir do anexo do card `LE-17`.
+> **Nota sobre o arquivo binário PDF:** o arquivo `apresentacao-comite.pdf` (13 slides, 16:9) foi gerado, validado visualmente página a página, anexado ao card Jira `LE-17` e já se encontra publicado no repositório em [`docs/apresentacao-comite.pdf`](apresentacao-comite.pdf). Este documento consolida a estrutura completa Top-Down, Action Titles e inventário de dados do deck.
 
 ---
 
