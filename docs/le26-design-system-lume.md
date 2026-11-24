@@ -3,7 +3,7 @@
 **Ticket Jira:** `LE-26` (Épico `LE-1` — Arquitetura e Produto)  
 **Requisitos vinculados:** `R12` e `D17`  
 **Equipe PMO:** Esquadrão Linha de Base  
-**Protótipo publicado (Web e Android):** https://tocoamora-sousa.github.io/lume-enem/  
+**Protótipo publicado (Web e Android):** https://tocoamora-sousa.github.io/lume-educacao/  
 **Tokens estruturados:** [`prototipo/design-tokens.json`](../prototipo/design-tokens.json)  
 
 ---
