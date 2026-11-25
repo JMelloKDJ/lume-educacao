@@ -1,13 +1,9 @@
 -- ============================================================================
--- Ticket 2.3 M1 / R4 — View SQL Reativa: vw_rede_pert_cpm (Supabase / PostgreSQL)
+-- Ticket 2.3 M1 / R4 — View SQL Reativa: lume_educacao.vw_rede_pert_cpm
 -- Projeto: Lume Educacao (Grupo 4) | Responsavel: Nara Pereira Sousa
 -- ============================================================================
--- OBS: Se no Supabase as tabelas se chamarem "07_atividades" e "08_dependencias",
--- troque public.atividades por public."07_atividades" e public.dependencias
--- por public."08_dependencias" antes de executar.
--- ============================================================================
 
-CREATE OR REPLACE VIEW public.vw_rede_pert_cpm AS
+CREATE OR REPLACE VIEW lume_educacao.vw_rede_pert_cpm AS
 WITH RECURSIVE
 base AS (
   SELECT
@@ -17,40 +13,43 @@ base AS (
     a.disciplina,
     a.tipo_atividade,
     CASE
-      WHEN a.tipo_atividade = 'MARCO_AGIL' OR a.duracao_fixa_du IS NOT NULL
+      WHEN UPPER(TRIM(a.tipo_atividade)) = 'MARCO_AGIL' OR a.duracao_fixa_du IS NOT NULL
         THEN a.duracao_fixa_du::INTEGER
       ELSE CEIL((a.duracao_otimista_du + 4.0 * a.duracao_mais_provavel_du + a.duracao_pessimista_du) / 6.0)::INTEGER
     END AS duracao_du,
     CASE
-      WHEN a.tipo_atividade = 'MARCO_AGIL' OR a.duracao_fixa_du IS NOT NULL
+      WHEN UPPER(TRIM(a.tipo_atividade)) = 'MARCO_AGIL' OR a.duracao_fixa_du IS NOT NULL
         THEN 0.0::NUMERIC
       ELSE ROUND(((a.duracao_pessimista_du - a.duracao_otimista_du) / 6.0)::NUMERIC, 4)
     END AS desvio_padrao_du
-  FROM public.atividades a
+  FROM lume_educacao.atividades a
 ),
 ida_caminhos AS (
   SELECT
     b.id_atividade,
     1::INTEGER AS es,
-    b.duracao_du::INTEGER AS ef
+    b.duracao_du::INTEGER AS ef,
+    0::INTEGER AS depth
   FROM base b
   WHERE NOT EXISTS (
-    SELECT 1 FROM public.dependencias d WHERE d.id_sucessora = b.id_atividade
+    SELECT 1 FROM lume_educacao.dependencias d WHERE d.id_sucessora = b.id_atividade
   )
   UNION ALL
   SELECT
     b.id_atividade,
     (CASE
-      WHEN d.tipo_dependencia = 'TI' THEN c.ef + 1 + COALESCE(d.defasagem_du, 0)
-      WHEN d.tipo_dependencia = 'II' THEN c.es + COALESCE(d.defasagem_du, 0)
+      WHEN UPPER(TRIM(d.tipo_dependencia)) = 'TI' THEN c.ef + 1 + COALESCE(d.defasagem_du, 0)
+      ELSE c.es + COALESCE(d.defasagem_du, 0)
     END)::INTEGER AS es,
     ((CASE
-      WHEN d.tipo_dependencia = 'TI' THEN c.ef + 1 + COALESCE(d.defasagem_du, 0)
-      WHEN d.tipo_dependencia = 'II' THEN c.es + COALESCE(d.defasagem_du, 0)
-    END) + b.duracao_du - 1)::INTEGER AS ef
+      WHEN UPPER(TRIM(d.tipo_dependencia)) = 'TI' THEN c.ef + 1 + COALESCE(d.defasagem_du, 0)
+      ELSE c.es + COALESCE(d.defasagem_du, 0)
+    END) + b.duracao_du - 1)::INTEGER AS ef,
+    (c.depth + 1)::INTEGER AS depth
   FROM ida_caminhos c
-  JOIN public.dependencias d ON d.id_predecessora = c.id_atividade
+  JOIN lume_educacao.dependencias d ON d.id_predecessora = c.id_atividade
   JOIN base b ON b.id_atividade = d.id_sucessora
+  WHERE c.depth < 60
 ),
 ida AS (
   SELECT
@@ -74,26 +73,29 @@ volta_caminhos AS (
   SELECT
     i.id_atividade,
     (p.prazo_total_du - i.duracao_du + 1)::INTEGER AS ls,
-    p.prazo_total_du::INTEGER AS lf
+    p.prazo_total_du::INTEGER AS lf,
+    0::INTEGER AS depth
   FROM ida i
   CROSS JOIN prazo p
   WHERE NOT EXISTS (
-    SELECT 1 FROM public.dependencias d WHERE d.id_predecessora = i.id_atividade
+    SELECT 1 FROM lume_educacao.dependencias d WHERE d.id_predecessora = i.id_atividade
   )
   UNION ALL
   SELECT
     i.id_atividade,
     (CASE
-      WHEN d.tipo_dependencia = 'TI' THEN (v.ls - 1 - COALESCE(d.defasagem_du, 0)) - i.duracao_du + 1
-      WHEN d.tipo_dependencia = 'II' THEN v.ls - COALESCE(d.defasagem_du, 0)
+      WHEN UPPER(TRIM(d.tipo_dependencia)) = 'TI' THEN (v.ls - 1 - COALESCE(d.defasagem_du, 0)) - i.duracao_du + 1
+      ELSE v.ls - COALESCE(d.defasagem_du, 0)
     END)::INTEGER AS ls,
     ((CASE
-      WHEN d.tipo_dependencia = 'TI' THEN (v.ls - 1 - COALESCE(d.defasagem_du, 0)) - i.duracao_du + 1
-      WHEN d.tipo_dependencia = 'II' THEN v.ls - COALESCE(d.defasagem_du, 0)
-    END) + i.duracao_du - 1)::INTEGER AS lf
+      WHEN UPPER(TRIM(d.tipo_dependencia)) = 'TI' THEN (v.ls - 1 - COALESCE(d.defasagem_du, 0)) - i.duracao_du + 1
+      ELSE v.ls - COALESCE(d.defasagem_du, 0)
+    END) + i.duracao_du - 1)::INTEGER AS lf,
+    (v.depth + 1)::INTEGER AS depth
   FROM volta_caminhos v
-  JOIN public.dependencias d ON d.id_sucessora = v.id_atividade
+  JOIN lume_educacao.dependencias d ON d.id_sucessora = v.id_atividade
   JOIN ida i ON i.id_atividade = d.id_predecessora
+  WHERE v.depth < 60
 ),
 volta AS (
   SELECT
@@ -111,8 +113,8 @@ folga_livre AS (
       COALESCE(
         MIN(
           CASE
-            WHEN d.tipo_dependencia = 'TI' THEN s.es - 1 - COALESCE(d.defasagem_du, 0) - i.ef
-            WHEN d.tipo_dependencia = 'II' THEN s.es - COALESCE(d.defasagem_du, 0) - i.es
+            WHEN UPPER(TRIM(d.tipo_dependencia)) = 'TI' THEN s.es - 1 - COALESCE(d.defasagem_du, 0) - i.ef
+            ELSE s.es - COALESCE(d.defasagem_du, 0) - i.es
           END
         ),
         p.prazo_total_du - i.ef
@@ -120,7 +122,7 @@ folga_livre AS (
     )::INTEGER AS fl
   FROM ida i
   CROSS JOIN prazo p
-  LEFT JOIN public.dependencias d ON d.id_predecessora = i.id_atividade
+  LEFT JOIN lume_educacao.dependencias d ON d.id_predecessora = i.id_atividade
   LEFT JOIN ida s ON s.id_atividade = d.id_sucessora
   GROUP BY i.id_atividade, i.ef, p.prazo_total_du
 )
