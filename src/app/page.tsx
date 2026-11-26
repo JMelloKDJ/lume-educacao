@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Moon, PanelLeft, Plus, Send, Sun, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { ClipboardList, Moon, PanelLeft, Plus, Send, Sun, Trash2, X } from "lucide-react";
 import { MarkdownBubble } from "@/components/MarkdownBubble";
 
 interface ChatItem {
@@ -362,6 +363,15 @@ export default function LumeChatPage() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Link
+              href="/lancamentos"
+              className="lume-btn-ghost"
+              style={{ textDecoration: "none" }}
+            >
+              <ClipboardList size={15} />
+              <span>Lançamentos</span>
+            </Link>
+
             <button
               type="button"
               onClick={startNewConversation}
