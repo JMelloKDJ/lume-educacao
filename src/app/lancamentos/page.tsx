@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   BOLETINS_CONFIG,
   BoletimDef,
@@ -264,7 +265,13 @@ export default function LancamentosPage() {
             Toda gravação atualiza instantaneamente <code>vw_numeros_controle</code>, <code>vw_evm_resumo</code> e <code>vw_rede_pert_cpm</code>.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/"
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            ← Voltar para a IA
+          </Link>
           <button
             type="button"
             onClick={() => setModo('quinzena')}
