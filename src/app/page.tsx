@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ClipboardList, Moon, PanelLeft, Plus, Send, Sun, Trash2, X } from "lucide-react";
+import { Box, ClipboardList, Moon, PanelLeft, Plus, Send, Sun, Trash2, X } from "lucide-react";
 import { MarkdownBubble } from "@/components/MarkdownBubble";
 
 interface ChatItem {
@@ -370,6 +370,15 @@ export default function LumeChatPage() {
             >
               <ClipboardList size={15} />
               <span>Lançamentos</span>
+            </Link>
+
+            <Link
+              href="/mapa-3d"
+              className="lume-btn-ghost"
+              style={{ textDecoration: "none" }}
+            >
+              <Box size={15} />
+              <span>Mapa 3D</span>
             </Link>
 
             <button
