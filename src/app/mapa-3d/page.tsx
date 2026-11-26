@@ -291,7 +291,7 @@ function ThreeScene({
       }
     >();
 
-    // Constrói os 18 elementos respeitando coordenadas (CAD X,Y,Z -> Three X,Z_up,Y)
+    // Constrói os 28 elementos respeitando coordenadas (CAD X,Y,Z -> Three X,Z_up,Y)
     for (const el of elements) {
       const isArea = el.tipo_elemento === "AREA";
       const w = Math.max(el.largura, 0.4);
@@ -677,7 +677,7 @@ export default function Mapa3DPage() {
 
   const selectedDate = timelineDates[dateIdx] ?? cutoffDate ?? "2026-11-13";
 
-  // Calcula status e avanço de cada um dos 18 elementos na data do slider
+  // Calcula status e avanço de cada um dos 28 elementos na data do slider
   const computedElements: ComputedElement[] = useMemo(() => {
     if (!payload) return [];
     const baseElements = parseElementos(payload.elementos);
@@ -1234,7 +1234,7 @@ export default function Mapa3DPage() {
             }}
           >
             <span>Início: {fmtDateBR(timelineDates[0] ?? "")}</span>
-            <span>Arraste para ver a evolução dos 18 elementos</span>
+            <span>Arraste para ver a evolução dos 28 elementos</span>
             <span>Fim: {fmtDateBR(timelineDates[timelineDates.length - 1] ?? "")}</span>
           </div>
         </section>
@@ -1368,7 +1368,7 @@ export default function Mapa3DPage() {
             </div>
           </div>
 
-          {/* Painel lateral: Inspetor + Lista dos 18 elementos */}
+          {/* Painel lateral: Inspetor + Lista dos 28 elementos */}
           <aside style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             <div style={{ ...cardStyle, padding: "16px" }}>
               <div
@@ -1477,7 +1477,7 @@ export default function Mapa3DPage() {
                 </div>
               ) : (
                 <p style={{ margin: 0, fontSize: "13px", color: "var(--muted, #64748b)", lineHeight: 1.5 }}>
-                  Clique em qualquer um dos 18 elementos na cena 3D (ou na lista abaixo) para ver posição, dimensões, status e vínculos do projeto.
+                  Clique em qualquer um dos 28 elementos na cena 3D (ou na lista abaixo) para ver posição, dimensões, status e vínculos do projeto.
                 </p>
               )}
             </div>
