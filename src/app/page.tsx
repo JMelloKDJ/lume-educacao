@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Box, ClipboardList, Moon, PanelLeft, Plus, Send, Sun, Trash2, X } from "lucide-react";
+import { Box, ClipboardList, Moon, PanelLeft, Plus, Send, Sun, Trash2, TrendingUp, X } from "lucide-react";
 import { MarkdownBubble } from "@/components/MarkdownBubble";
 
 interface ChatItem {
@@ -372,10 +372,14 @@ export default function LumeChatPage() {
               <span>Lançamentos</span>
             </Link>
 
-            <Link
-              href="/mapa-3d"
+                       <Link
+              href="/preditiva"
               className="lume-btn-ghost"
               style={{ textDecoration: "none" }}
+            >
+              <TrendingUp size={15} />
+              <span>Preditiva (R4–R6)</span>
+            </Link>
             >
               <Box size={15} />
               <span>Mapa 3D</span>
