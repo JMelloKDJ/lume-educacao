@@ -314,10 +314,11 @@ export default function LumeChatPage() {
       >
         <div
           style={{
-            maxWidth: "820px",
+            maxWidth: "960px",
             margin: "0 auto",
             padding: "12px 16px",
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "center",
             justifyContent: "space-between",
             gap: "12px",
@@ -362,7 +363,7 @@ export default function LumeChatPage() {
             </span>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}>
             <Link
               href="/lancamentos"
               className="lume-btn-ghost"
