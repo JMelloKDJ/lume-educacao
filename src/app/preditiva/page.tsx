@@ -877,4 +877,396 @@ export default function PreditivaPage() {
                 </div>
 
                 <div style={{ ...cardStyle, padding: "20px" }}>
-                  <h3 style={{ margin: "0 0 12
+                  <h3 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 700 }}>
+                    Tabela Consolidada EVM (vw_evm_resumo)
+                  </h3>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                      <thead>
+                        <tr style={{ background: "var(--canvas, #f8fafc)", textAlign: "left" }}>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>Frente</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>ONT</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>VP</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>VA</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>CR</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>IDP</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>IDC</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>ENT Típica</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(data?.evm ?? []).map((row, idx) => (
+                          <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "10px 12px", fontWeight: 700 }}>
+                              {pickStr(row, ["frente"]) || `Linha ${idx + 1}`}
+                            </td>
+                            <td style={{ padding: "10px 12px" }}>{fmtBRL(pickNum(row, ["ont_rs"]))}</td>
+                            <td style={{ padding: "10px 12px" }}>{fmtBRL(pickNum(row, ["vp_rs"]))}</td>
+                            <td style={{ padding: "10px 12px" }}>{fmtBRL(pickNum(row, ["va_rs"]))}</td>
+                            <td style={{ padding: "10px 12px" }}>{fmtBRL(pickNum(row, ["cr_rs"]))}</td>
+                            <td style={{ padding: "10px 12px", fontWeight: 600 }}>
+                              {fmtNum(pickNum(row, ["idp"]), 3)}
+                            </td>
+                            <td style={{ padding: "10px 12px", fontWeight: 600 }}>
+                              {fmtNum(pickNum(row, ["idc"]), 3)}
+                            </td>
+                            <td style={{ padding: "10px 12px" }}>
+                              {fmtBRL(pickNum(row, ["ent_tipica_rs"]))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {aba === "pert" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: "12px",
+                  }}
+                >
+                  <div style={{ ...cardStyle, padding: "14px 16px", borderLeft: "4px solid #081628" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted, #64748b)" }}>
+                      ATIVIDADES NA REDE
+                    </div>
+                    <div style={{ marginTop: "6px", fontSize: "20px", fontWeight: 700 }}>
+                      {pertStats.total}
+                    </div>
+                  </div>
+                  <div style={{ ...cardStyle, padding: "14px 16px", borderLeft: "4px solid #ef4444" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "#991b1b" }}>
+                      CAMINHO CRÍTICO (FOLGA = 0)
+                    </div>
+                    <div style={{ marginTop: "6px", fontSize: "20px", fontWeight: 700, color: "#991b1b" }}>
+                      {pertStats.criticas} atividades
+                    </div>
+                  </div>
+                  <div style={{ ...cardStyle, padding: "14px 16px", borderLeft: "4px solid #c9a227" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted, #64748b)" }}>
+                      DURAÇÃO TOTAL DA REDE
+                    </div>
+                    <div style={{ marginTop: "6px", fontSize: "20px", fontWeight: 700 }}>
+                      {pertStats.duracaoTotal} du
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ ...cardStyle, padding: "20px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "10px",
+                      marginBottom: "14px",
+                    }}
+                  >
+                    <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700 }}>
+                      Cronograma PERT/CPM — Caminho Crítico e Folgas
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => setSoCriticas((v) => !v)}
+                      className="lume-btn-ghost"
+                      style={{ fontSize: "12.5px", padding: "6px 12px" }}
+                    >
+                      {soCriticas ? "Mostrar todas as atividades" : "Filtrar só caminho crítico"}
+                    </button>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {pertFiltered.map((item) => {
+                      const leftPct = Math.max(0, ((item.es - 1) / pertStats.duracaoTotal) * 100);
+                      const widthPct = Math.max(2, (item.duracao / pertStats.duracaoTotal) * 100);
+                      const slackPct = Math.max(0, (item.folga / pertStats.duracaoTotal) * 100);
+
+                      return (
+                        <div
+                          key={item.id}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "220px minmax(0, 1fr) 86px",
+                            gap: "10px",
+                            alignItems: "center",
+                            fontSize: "12.5px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              fontWeight: item.critica ? 700 : 500,
+                              color: item.critica ? "#991b1b" : "var(--ink, #0f172a)",
+                            }}
+                            title={`${item.id} — ${item.nome}`}
+                          >
+                            {item.id} · {item.nome}
+                          </div>
+
+                          <div
+                            style={{
+                              position: "relative",
+                              height: "22px",
+                              background: "var(--canvas, #f1f5f9)",
+                              borderRadius: "6px",
+                              overflow: "hidden",
+                            }}
+                          >
+                            {slackPct > 0 && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: "7px",
+                                  bottom: "7px",
+                                  left: `${Math.min(100, leftPct + widthPct)}%`,
+                                  width: `${Math.min(100 - leftPct - widthPct, slackPct)}%`,
+                                  background: "#cbd5e1",
+                                  borderRadius: "3px",
+                                }}
+                                title={`Folga total: ${item.folga} du`}
+                              />
+                            )}
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "3px",
+                                bottom: "3px",
+                                left: `${Math.min(98, leftPct)}%`,
+                                width: `${Math.min(100 - leftPct, widthPct)}%`,
+                                background: item.critica ? "#ef4444" : "#081628",
+                                borderRadius: "4px",
+                              }}
+                              title={`ES: ${item.es} | EF: ${item.ef} | Duração: ${item.duracao} du`}
+                            />
+                          </div>
+
+                          <div
+                            style={{
+                              textAlign: "right",
+                              fontWeight: 700,
+                              fontSize: "11.5px",
+                              color: item.critica ? "#b91c1c" : "var(--muted, #64748b)",
+                            }}
+                          >
+                            {item.critica ? "CRÍTICA" : `+${item.folga} du`}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ ...cardStyle, padding: "20px" }}>
+                  <h3 style={{ margin: "0 0 12px", fontSize: "15px", fontWeight: 700 }}>
+                    Tabela Completa PERT / CPM (vw_rede_pert_cpm)
+                  </h3>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                      <thead>
+                        <tr style={{ background: "var(--canvas, #f8fafc)", textAlign: "left" }}>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>ID</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>Atividade</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>Duração</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>ES</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>EF</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>LS</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>LF</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>Folga</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pertFiltered.map((row) => (
+                          <tr key={row.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "9px 12px", fontWeight: 700 }}>{row.id}</td>
+                            <td style={{ padding: "9px 12px" }}>{row.nome}</td>
+                            <td style={{ padding: "9px 12px" }}>{row.duracao} du</td>
+                            <td style={{ padding: "9px 12px" }}>{row.es}</td>
+                            <td style={{ padding: "9px 12px" }}>{row.ef}</td>
+                            <td style={{ padding: "9px 12px" }}>{row.ls}</td>
+                            <td style={{ padding: "9px 12px" }}>{row.lf}</td>
+                            <td
+                              style={{
+                                padding: "9px 12px",
+                                fontWeight: 700,
+                                color: row.critica ? "#b91c1c" : "inherit",
+                              }}
+                            >
+                              {row.folga} du {row.critica ? "(Crítico)" : ""}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {aba === "crashing" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: "12px",
+                  }}
+                >
+                  <div style={{ ...cardStyle, padding: "14px 16px", borderLeft: "4px solid #081628" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted, #64748b)" }}>
+                      DIAS COMPRIMIDOS
+                    </div>
+                    <div style={{ marginTop: "6px", fontSize: "20px", fontWeight: 700 }}>
+                      -{crashSummary.diasReduzidos} du ({crashSummary.novaDuracao} du)
+                    </div>
+                  </div>
+                  <div style={{ ...cardStyle, padding: "14px 16px", borderLeft: "4px solid #ef4444" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "#991b1b" }}>
+                      CUSTO ADICIONAL (CRASH)
+                    </div>
+                    <div style={{ marginTop: "6px", fontSize: "20px", fontWeight: 700, color: "#991b1b" }}>
+                      {fmtBRL(crashSummary.custoAdicional)}
+                    </div>
+                  </div>
+                  <div style={{ ...cardStyle, padding: "14px 16px", borderLeft: "4px solid #10b981" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "#065f46" }}>
+                      ECONOMIA EM ATRASO ({fmtBRL(custoAtrasoDu)}/du)
+                    </div>
+                    <div style={{ marginTop: "6px", fontSize: "20px", fontWeight: 700, color: "#065f46" }}>
+                      {fmtBRL(crashSummary.economiaAtraso)}
+                    </div>
+                  </div>
+                  <div style={{ ...cardStyle, padding: "14px 16px", borderLeft: "4px solid #c9a227" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--muted, #64748b)" }}>
+                      SALDO LÍQUIDO DA COMPRESSÃO
+                    </div>
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        fontSize: "20px",
+                        fontWeight: 700,
+                        color: crashSummary.saldoLiquido >= 0 ? "#065f46" : "#991b1b",
+                      }}
+                    >
+                      {fmtBRL(crashSummary.saldoLiquido)}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ ...cardStyle, padding: "20px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "10px",
+                      marginBottom: "14px",
+                    }}
+                  >
+                    <div>
+                      <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700 }}>
+                        Simulador de Crashing — Ordenado por Menor Cost Slope (R$/du)
+                      </h2>
+                      <p style={{ margin: "4px 0 0", fontSize: "12.5px", color: "var(--muted, #64748b)" }}>
+                        Toque em + / − para comprimir dias nas atividades críticas e comparar o custo marginal contra o custo do atraso.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReducoes({})}
+                      className="lume-btn-ghost"
+                      style={{ fontSize: "12.5px", padding: "6px 12px" }}
+                    >
+                      Zerar simulação
+                    </button>
+                  </div>
+
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                      <thead>
+                        <tr style={{ background: "var(--canvas, #f8fafc)", textAlign: "left" }}>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>Atividade</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>Normal</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>Limite Crash</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>Custo Normal</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>Cost Slope</th>
+                          <th style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>Comprimir</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {crashItems.map((item) => {
+                          const red = reducoes[item.id] ?? 0;
+                          return (
+                            <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                              <td style={{ padding: "10px 12px", fontWeight: 600 }}>
+                                {item.id} — {item.nome}{" "}
+                                {item.critica && (
+                                  <span
+                                    style={{
+                                      marginLeft: "6px",
+                                      padding: "2px 7px",
+                                      borderRadius: "999px",
+                                      fontSize: "10.5px",
+                                      fontWeight: 700,
+                                      background: "#fee2e2",
+                                      color: "#991b1b",
+                                    }}
+                                  >
+                                    Crítica
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ padding: "10px 12px" }}>{item.duracaoNormal} du</td>
+                              <td style={{ padding: "10px 12px" }}>{item.duracaoCrash} du</td>
+                              <td style={{ padding: "10px 12px" }}>{fmtBRL(item.custoNormal)}</td>
+                              <td style={{ padding: "10px 12px", fontWeight: 700 }}>
+                                {fmtBRL(item.slope)} / du
+                              </td>
+                              <td style={{ padding: "10px 12px" }}>
+                                <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => ajustarReducao(item.id, item.maxReducao, -1)}
+                                    disabled={red <= 0}
+                                    className="lume-btn-ghost"
+                                    style={{ padding: "3px 9px", fontWeight: 700 }}
+                                  >
+                                    −
+                                  </button>
+                                  <span style={{ minWidth: "46px", textAlign: "center", fontWeight: 700 }}>
+                                    -{red} / {item.maxReducao}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => ajustarReducao(item.id, item.maxReducao, 1)}
+                                    disabled={red >= item.maxReducao}
+                                    className="lume-btn-ghost"
+                                    style={{ padding: "3px 9px", fontWeight: 700 }}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+    </div>
+  );
+}
