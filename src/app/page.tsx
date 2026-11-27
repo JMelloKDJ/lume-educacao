@@ -372,17 +372,22 @@ export default function LumeChatPage() {
               <span>Lançamentos</span>
             </Link>
 
-                       <Link
+            <Link
+              href="/mapa-3d"
+              className="lume-btn-ghost"
+              style={{ textDecoration: "none" }}
+            >
+              <Box size={15} />
+              <span>Mapa 3D</span>
+            </Link>
+
+            <Link
               href="/preditiva"
               className="lume-btn-ghost"
               style={{ textDecoration: "none" }}
             >
               <TrendingUp size={15} />
               <span>Preditiva (R4–R6)</span>
-            </Link>
-            >
-              <Box size={15} />
-              <span>Mapa 3D</span>
             </Link>
 
             <button
