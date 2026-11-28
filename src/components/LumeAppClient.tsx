@@ -134,7 +134,14 @@ function AppContent({ initialScreen }: { initialScreen: AppScreen }) {
           onOpenChange={setLumiOpen}
           snapshot={snapshot}
           userName="João"
-          onAskLumi={askLumiAssistant}
+          activeSection={activeSection}
+          onAskLumi={(prompt) =>
+            askLumiAssistant(
+              prompt,
+              { activeSection: screen === 'app' ? activeSection : undefined },
+              screen === 'app' ? setActiveSection : undefined
+            )
+          }
         />
       )}
     </>

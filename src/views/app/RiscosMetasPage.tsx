@@ -48,8 +48,6 @@ import {
 import type { IslandId } from '../../data/mapa3dData';
 import {
   GANTT_FRONTS,
-  INITIAL_OKR_OBJECTIVES,
-  INITIAL_PROJECT_RISKS,
   computeKrProgress,
   getKrStatus,
   getRiskSeverityFromScore,
@@ -162,6 +160,8 @@ export function RiscosMetasPage({
   showToast,
 }: RiscosMetasPageProps) {
   const {
+    risks,
+    objectives,
     riskStatuses,
     customRisks,
     krValues,
@@ -191,7 +191,9 @@ export function RiscosMetasPage({
   const [draftContingency, setDraftContingency] = useState('');
 
   const resolvedRisks = useMemo(() => {
-    const combined = [...customRisks, ...INITIAL_PROJECT_RISKS];
+    const existingIds = new Set(risks.map((r) => r.id));
+    const mergedCustom = customRisks.filter((r) => !existingIds.has(r.id));
+    const combined = [...mergedCustom, ...risks];
     return combined.map((risk) => {
       const score = risk.probability * risk.impact;
       const severity = getRiskSeverityFromScore(risk.probability, risk.impact);
@@ -203,10 +205,10 @@ export function RiscosMetasPage({
         trackingStatus,
       };
     });
-  }, [customRisks, riskStatuses]);
+  }, [risks, customRisks, riskStatuses]);
 
   const resolvedObjectives = useMemo(() => {
-    return INITIAL_OKR_OBJECTIVES.map((obj) => {
+    return objectives.map((obj) => {
       const krs = obj.keyResults.map((kr) => {
         const currentValue = krValues[kr.id] ?? kr.currentValue;
         const pct = computeKrProgress(kr, currentValue);
@@ -227,7 +229,7 @@ export function RiscosMetasPage({
         avgPct,
       };
     });
-  }, [krValues]);
+  }, [objectives, krValues]);
 
   // All KPIs computed 100% dynamically from live arrays
   const kpiStats = useMemo(() => {

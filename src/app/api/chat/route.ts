@@ -13,6 +13,7 @@ const postBodySchema = z.object({
   conversationId: z.string().uuid().optional().nullable(),
   message: z.string().trim().min(1, "Mensagem não pode ser vazia.").max(4000),
   sync: z.boolean().optional(),
+  screenContext: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -26,15 +27,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { conversationId, message, sync } = parsed.data;
+    const { conversationId, message, sync, screenContext } = parsed.data;
     const isSync =
       Boolean(sync) || req.nextUrl.searchParams.get("sync") === "1";
 
     const enq = await enqueueUserMessage(conversationId, message);
 
     if (isSync) {
-      await processConversationTurn(enq.conversationId, enq.jobId, {
+      const turnResult = await processConversationTurn(enq.conversationId, enq.jobId, {
         skipDebounce: true,
+        screenContext,
       });
       const outbox = await query<{
         id: string;
@@ -55,6 +57,8 @@ export async function POST(req: NextRequest) {
           jobId: enq.jobId,
           state: "completed_sync",
           messages: outbox,
+          uiActions: turnResult.uiActions,
+          dataMutated: turnResult.dataMutated,
         },
         { status: 200 }
       );
@@ -62,7 +66,9 @@ export async function POST(req: NextRequest) {
 
     if (enq.shouldSchedule) {
       after(async () => {
-        await processConversationTurn(enq.conversationId, enq.jobId);
+        await processConversationTurn(enq.conversationId, enq.jobId, {
+          screenContext,
+        });
       });
     }
 

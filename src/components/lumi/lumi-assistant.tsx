@@ -19,6 +19,8 @@ import {
   type CutoffSnapshot,
 } from '../../data/mock-project';
 import { cn } from '../../lib/utils';
+import type { LumiAskResult } from '../../services/lumeStore';
+import { MarkdownBubble } from '../MarkdownBubble';
 import { LumiMascot } from './lumi-mascot';
 
 export interface ChatMessage {
@@ -26,6 +28,7 @@ export interface ChatMessage {
   role: 'assistant' | 'user';
   content: string;
   timestamp: string;
+  actionBadge?: string;
 }
 
 interface LumiAssistantProps {
@@ -33,7 +36,8 @@ interface LumiAssistantProps {
   onOpenChange: (open: boolean) => void;
   snapshot: CutoffSnapshot;
   userName?: string;
-  onAskLumi?: (prompt: string) => Promise<string>;
+  activeSection?: string;
+  onAskLumi?: (prompt: string) => Promise<LumiAskResult | string>;
 }
 
 function formatNow(): string {
@@ -61,6 +65,7 @@ export function LumiAssistant({
   onOpenChange,
   snapshot,
   userName = 'João',
+  activeSection,
   onAskLumi,
 }: LumiAssistantProps) {
   const [bubbleDismissed, setBubbleDismissed] = useState(false);
@@ -110,10 +115,25 @@ export function LumiAssistant({
     setIsSending(true);
 
     let replyText = '';
+    let actionBadge: string | undefined;
 
     if (onAskLumi) {
       try {
-        replyText = await onAskLumi(finalPrompt);
+        const res = await onAskLumi(finalPrompt);
+        if (typeof res === 'string') {
+          replyText = res;
+        } else {
+          replyText = res.reply;
+          const actionsCount = res.uiActions?.length ?? 0;
+          if (actionsCount > 0 || res.dataMutated) {
+            actionBadge =
+              actionsCount > 0 && res.dataMutated
+                ? 'Base atualizada + ação na tela'
+                : res.dataMutated
+                  ? 'Registro salvo no projeto'
+                  : `${actionsCount} ação na tela executada`;
+          }
+        }
       } catch {
         replyText = '';
       }
@@ -131,6 +151,7 @@ export function LumiAssistant({
         role: 'assistant',
         content: replyText,
         timestamp: formatNow(),
+        actionBadge,
       },
     ]);
     setIsSending(false);
@@ -216,7 +237,17 @@ export function LumiAssistant({
                           : 'border border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-primary)] rounded-bl-md'
                       )}
                     >
-                      <p>{msg.content}</p>
+                      {msg.actionBadge && (
+                        <div className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-[var(--status-positive-soft)] px-2 py-0.5 font-mono text-[10px] font-semibold text-[var(--status-positive)]">
+                          <span>●</span>
+                          <span>{msg.actionBadge}</span>
+                        </div>
+                      )}
+                      {msg.role === 'assistant' ? (
+                        <MarkdownBubble content={msg.content} />
+                      ) : (
+                        <p>{msg.content}</p>
+                      )}
                       <div
                         className={cn(
                           'mt-1.5 text-right font-mono text-[10px] tabular-nums',
@@ -231,6 +262,21 @@ export function LumiAssistant({
                   {/* Quick shortcut pills right below the greeting */}
                   {index === 0 && (
                     <div className="flex flex-wrap gap-2 pt-0.5">
+                      {activeSection && (
+                        <button
+                          type="button"
+                          disabled={isSending}
+                          onClick={() =>
+                            void sendMessage(
+                              `Analise os gráficos e indicadores desta tela (${activeSection}) e gere insights executivos com próximos passos.`
+                            )
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-primary)]/80 bg-[var(--brand-primary-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--brand-primary)] transition-colors hover:opacity-90 disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/40"
+                        >
+                          <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+                          <span>Gerar insights desta tela</span>
+                        </button>
+                      )}
                       {LUMI_QUICK_PROMPTS.map((item) => (
                         <button
                           key={item.id}

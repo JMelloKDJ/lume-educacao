@@ -6,6 +6,7 @@ import {
   ACTION_TOOLS_WITHOUT_DELEGATE,
   TOOL_DECLARATIONS,
   executeToolCall,
+  type LumiUiAction,
 } from "./tools";
 
 function sleep(ms: number): Promise<void> {
@@ -143,6 +144,8 @@ interface AgentLoopStats {
   cacheHits: number;
   ragChunks: number;
   actionsCreated: number;
+  dataMutated: boolean;
+  uiActions: LumiUiAction[];
   toolsCalled: Array<{ name: string; cacheHit: boolean; ms: number }>;
   toolsMs: number;
   ragMs: number;
@@ -183,13 +186,11 @@ async function runModelLoop(params: {
       return parseAgentMessages(response.text);
     }
 
-    // Push model response turn into conversation contents
     const modelParts: Part[] = response.candidates?.[0]?.content?.parts ?? [];
     if (modelParts.length > 0) {
       workingContents.push({ role: "model", parts: modelParts });
     }
 
-    // Check if the agent autonomously decided to escalate to Flash
     const escalateCall = params.allowEscalation
       ? calls.find((c) => c.name === "delegate_complex_analysis")
       : undefined;
@@ -234,7 +235,6 @@ async function runModelLoop(params: {
       });
     }
 
-    // Execute requested tools deterministically/parallel
     const responseParts: Part[] = [];
     for (const call of calls) {
       const toolName = call.name ?? "";
@@ -256,6 +256,8 @@ async function runModelLoop(params: {
         }
         if (res.cacheHit) params.stats.cacheHits += 1;
         if (res.actionCreated) params.stats.actionsCreated += 1;
+        if (res.dataMutated) params.stats.dataMutated = true;
+        if (res.uiAction) params.stats.uiActions.push(res.uiAction);
         params.stats.ragChunks += res.ragChunks;
         params.stats.toolsCalled.push({
           name: toolName,
@@ -296,12 +298,21 @@ async function runModelLoop(params: {
   ];
 }
 
+export interface ProcessTurnResult {
+  uiActions: LumiUiAction[];
+  dataMutated: boolean;
+}
+
 export async function processConversationTurn(
   conversationId: string,
   initialJobId: string,
-  options?: { skipDebounce?: boolean }
-): Promise<void> {
+  options?: {
+    skipDebounce?: boolean;
+    screenContext?: Record<string, unknown>;
+  }
+): Promise<ProcessTurnResult> {
   let currentJobId = initialJobId;
+  let lastResult: ProcessTurnResult = { uiActions: [], dataMutated: false };
 
   while (true) {
     const turnStart = Date.now();
@@ -320,7 +331,7 @@ export async function processConversationTurn(
         );
 
         if (jobs.length === 0 || jobs[0].status !== "debouncing") {
-          return;
+          return lastResult;
         }
         if (jobs[0].remaining_ms <= 20) {
           break;
@@ -338,7 +349,7 @@ export async function processConversationTurn(
       [currentJobId]
     );
     if (claimed.length === 0) {
-      return;
+      return lastResult;
     }
 
     await query(
@@ -377,6 +388,8 @@ export async function processConversationTurn(
       cacheHits: 0,
       ragChunks: 0,
       actionsCreated: 0,
+      dataMutated: false,
+      uiActions: [],
       toolsCalled: [],
       toolsMs: 0,
       ragMs: 0,
@@ -403,12 +416,17 @@ export async function processConversationTurn(
         parts: [{ text: m.content }],
       }));
 
-      const coalescedInput =
+      const rawUserInput =
         pendingUsers.length === 1
           ? pendingUsers[0].content
           : pendingUsers.map((m, idx) => `[Mensagem ${idx + 1}] ${m.content}`).join("\n");
 
-      contents.push({ role: "user", parts: [{ text: coalescedInput }] });
+      const contextSuffix =
+        options?.screenContext && Object.keys(options.screenContext).length > 0
+          ? `\n\n[Contexto atual da tela do usuário]\n${JSON.stringify(options.screenContext)}`
+          : "";
+
+      contents.push({ role: "user", parts: [{ text: `${rawUserInput}${contextSuffix}` }] });
 
       const fp = await getDataFingerprint();
       const outBubbles = await runModelLoop({
@@ -420,6 +438,11 @@ export async function processConversationTurn(
         allowEscalation: true,
         stats,
       });
+
+      lastResult = {
+        uiActions: stats.uiActions,
+        dataMutated: stats.dataMutated,
+      };
 
       for (let i = 0; i < outBubbles.length; i++) {
         await query(
@@ -515,7 +538,6 @@ export async function processConversationTurn(
       );
     }
 
-    // Check if new user messages arrived while Turn 1 was running -> chain Delta Turn automatically!
     const deltaCheck = await query<{ cnt: string }>(
       `SELECT COUNT(*)::text AS cnt
        FROM lume_agent.messages
@@ -531,7 +553,7 @@ export async function processConversationTurn(
         [conversationId]
       );
       currentJobId = deltaJob[0].id;
-      options = { skipDebounce: false };
+      options = { ...options, skipDebounce: false };
       continue;
     }
 
@@ -541,4 +563,6 @@ export async function processConversationTurn(
     );
     break;
   }
+
+  return lastResult;
 }

@@ -71,7 +71,17 @@ export interface WorkspacePanelSnapshot {
   radarAtencao: RadarAttentionItem[];
 }
 
-export type ScenarioId = 'base' | 'aceleracao' | 'escopo' | 'revisao';
+export type ScenarioId =
+  | 'base'
+  | 'aceleracao'
+  | 'escopo'
+  | 'revisao'
+  | 'C1'
+  | 'C2'
+  | 'C3'
+  | 'C4'
+  | 'C5'
+  | 'C6';
 
 export interface ScenarioItem {
   id: ScenarioId;

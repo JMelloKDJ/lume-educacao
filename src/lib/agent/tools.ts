@@ -4,6 +4,24 @@ import { query, queryReadOnly } from "../db";
 import { getToolCache, setToolCache } from "./cache";
 import { searchKnowledgeBase } from "./rag";
 
+export type LumiUiSection =
+  | "painel"
+  | "cenarios"
+  | "cronograma"
+  | "mapa3d"
+  | "riscos"
+  | "produto"
+  | "relatorios";
+
+export type LumiUiAction =
+  | { type: "navigate_tab"; section: LumiUiSection }
+  | { type: "select_scenario"; scenarioId: string }
+  | { type: "approve_scenario"; scenarioId: string }
+  | { type: "update_simulator"; adocao?: number; capacidade?: number; reserva?: number }
+  | { type: "apply_crashing"; reducoes: Record<string, number> }
+  | { type: "reset_crashing" }
+  | { type: "focus_mapa3d_block"; blockId: string };
+
 export const TOOL_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: "consultar_metricas_fluxo_agil",
@@ -109,7 +127,7 @@ export const TOOL_DECLARATIONS: FunctionDeclaration[] = [
   {
     name: "registrar_acao_governanca",
     description:
-      "Registra uma ação real auditável no schema operacional lume_agent.agent_actions (abertura de Solicitação de Mudança com enquadramento automático na 05_matriz_alcadas, agendamento de deliberação do Comitê ou registro de plano de mitigação/decisão).",
+      "Registra uma deliberação executiva ou plano de mitigação auditável no histórico de governança da Lume.",
     parametersJsonSchema: {
       type: "object",
       properties: {
@@ -127,6 +145,138 @@ export const TOOL_DECLARATIONS: FunctionDeclaration[] = [
         referencia: { type: "string", description: "ID relacionado (ex.: C4, R15, LU-239)." },
       },
       required: ["tipo_acao", "titulo", "descricao"],
+    },
+  },
+  {
+    name: "abrir_solicitacao_mudanca",
+    description:
+      "Abre e grava uma Solicitação de Mudança (SM) real no banco oficial do projeto com cálculo automático da alçada decisora (GERENTE, PATROCINADOR ou COMITE).",
+    parametersJsonSchema: {
+      type: "object",
+      properties: {
+        descricao: { type: "string", description: "Descrição objetiva da mudança solicitada." },
+        tipo_mudanca: {
+          type: "string",
+          enum: ["ESCOPO", "PRAZO", "CUSTO", "QUALIDADE"],
+          description: "Natureza da mudança. Padrão: ESCOPO.",
+        },
+        frente: {
+          type: "string",
+          enum: ["PREDITIVA", "AGIL", "PROJETO", "GESTAO"],
+          description: "Frente afetada. Padrão: PROJETO.",
+        },
+        impacto_custo_rs: { type: "number", description: "Impacto financeiro em R$ (0 se nulo)." },
+        impacto_prazo_du: { type: "integer", description: "Impacto de prazo em dias úteis." },
+        impacto_pontos: { type: "integer", description: "Impacto estimado em story points." },
+        altera_escopo: { type: "boolean", description: "Se altera escopo aprovado." },
+        id_solicitante: { type: "string", description: "Opcional: código de parte interessada (ex.: PI01..PI12)." },
+        id_atividade: { type: "string", description: "Opcional: código da atividade (ex.: A01..A20)." },
+      },
+      required: ["descricao"],
+    },
+  },
+  {
+    name: "gerenciar_risco",
+    description:
+      "Atualiza o status de um risco existente (ex.: R15 -> ENCERRADO, ABERTO ou OCORRIDO) ou cadastra um novo risco no registro oficial do projeto.",
+    parametersJsonSchema: {
+      type: "object",
+      properties: {
+        operacao: {
+          type: "string",
+          enum: ["atualizar_status", "criar"],
+          description: "Escolha 'atualizar_status' para risco existente ou 'criar' para novo risco.",
+        },
+        id_risco: { type: "string", description: "Obrigatório em 'atualizar_status' (ex.: R15, R01)." },
+        status: {
+          type: "string",
+          enum: ["ABERTO", "ENCERRADO", "OCORRIDO"],
+          description: "Novo status do risco.",
+        },
+        descricao: { type: "string", description: "Obrigatório em 'criar': descrição clara do risco." },
+        frente: {
+          type: "string",
+          enum: ["PREDITIVA", "AGIL", "PROJETO", "GESTAO"],
+          description: "Frente relacionada ao risco.",
+        },
+        categoria: {
+          type: "string",
+          enum: ["TECNICO", "MERCADO", "FORNECEDOR", "EXTERNO", "GESTAO"],
+        },
+        probabilidade_pct: { type: "number", description: "Probabilidade de 1 a 100 (%)." },
+        impacto_custo_rs: { type: "number", description: "Impacto financeiro em R$." },
+        impacto_prazo_du: { type: "integer", description: "Impacto de prazo em dias úteis." },
+        estrategia_resposta: {
+          type: "string",
+          enum: ["MITIGAR", "ACEITAR", "EVITAR", "TRANSFERIR", "EXPLORAR", "MELHORAR"],
+        },
+        id_responsavel: { type: "string", description: "Opcional: código P01..P18." },
+      },
+      required: ["operacao"],
+    },
+  },
+  {
+    name: "atualizar_okr_piloto",
+    description:
+      "Atualiza a medição atual de um Resultado-Chave oficial (KR1 a KR6) na base de metas e OKRs do projeto.",
+    parametersJsonSchema: {
+      type: "object",
+      properties: {
+        id_resultado_chave: {
+          type: "string",
+          enum: ["KR1", "KR2", "KR3", "KR4", "KR5", "KR6"],
+          description: "Identificador do KR (KR1..KR6).",
+        },
+        valor: {
+          type: "number",
+          description: "Novo valor medido na unidade do KR.",
+        },
+      },
+      required: ["id_resultado_chave", "valor"],
+    },
+  },
+  {
+    name: "executar_acao_interface",
+    description:
+      "Executa uma ação imediata na interface aberta pelo usuário no workspace /app: navegar entre abas, selecionar ou aprovar um cenário, ajustar sliders do simulador de premissas, aplicar/resetar Crashing PERT/CPM ou focar um bloco no Mapa 3D.",
+    parametersJsonSchema: {
+      type: "object",
+      properties: {
+        acao: {
+          type: "string",
+          enum: [
+            "navegar_aba",
+            "selecionar_cenario",
+            "aprovar_cenario",
+            "ajustar_simulador",
+            "aplicar_crashing",
+            "resetar_crashing",
+            "focar_bloco_3d",
+          ],
+          description: "Ação de interface a disparar para o usuário.",
+        },
+        section: {
+          type: "string",
+          enum: ["painel", "cenarios", "cronograma", "mapa3d", "riscos", "produto", "relatorios"],
+          description: "Obrigatório quando acao='navegar_aba'.",
+        },
+        scenarioId: {
+          type: "string",
+          description: "Obrigatório em selecionar_cenario ou aprovar_cenario (ex.: C1, C2, C3, C4, C5, C6).",
+        },
+        adocao: { type: "integer", description: "Slider de adoção escolar (40 a 100%)." },
+        capacidade: { type: "integer", description: "Slider de capacidade do time (50 a 100%)." },
+        reserva: { type: "integer", description: "Slider de reserva de contingência (5 a 30%)." },
+        reducoes_json: {
+          type: "string",
+          description: "JSON string com reduções de Crashing em dias úteis por ID de atividade, ex.: '{\"A10\": 3, \"A14\": 2}'.",
+        },
+        blockId: {
+          type: "string",
+          description: "ID do bloco no Mapa 3D (ex.: 'player-offline', 'simulado-tri', 'videoaulas-banco').",
+        },
+      },
+      required: ["acao"],
     },
   },
   {
@@ -169,11 +319,106 @@ const actionSchema = z.object({
   referencia: z.string().optional(),
 });
 
+const smSchema = z.object({
+  descricao: z.string().trim().min(5).max(500),
+  tipo_mudanca: z.enum(["ESCOPO", "PRAZO", "CUSTO", "QUALIDADE"]).default("ESCOPO"),
+  frente: z.enum(["PREDITIVA", "AGIL", "PROJETO", "GESTAO"]).default("PROJETO"),
+  impacto_custo_rs: z.number().default(0),
+  impacto_prazo_du: z.number().int().default(0),
+  impacto_pontos: z.number().int().default(0),
+  altera_escopo: z.boolean().optional(),
+  id_solicitante: z.string().trim().optional(),
+  id_atividade: z.string().trim().optional(),
+});
+
+const riskToolSchema = z.object({
+  operacao: z.enum(["atualizar_status", "criar"]),
+  id_risco: z.string().trim().optional(),
+  status: z.enum(["ABERTO", "ENCERRADO", "OCORRIDO"]).optional(),
+  descricao: z.string().trim().optional(),
+  frente: z.enum(["PREDITIVA", "AGIL", "PROJETO", "GESTAO"]).optional(),
+  categoria: z.enum(["TECNICO", "MERCADO", "FORNECEDOR", "EXTERNO", "GESTAO"]).optional(),
+  probabilidade_pct: z.number().min(1).max(100).optional(),
+  impacto_custo_rs: z.number().min(0).optional(),
+  impacto_prazo_du: z.number().int().min(0).optional(),
+  estrategia_resposta: z
+    .enum(["MITIGAR", "ACEITAR", "EVITAR", "TRANSFERIR", "EXPLORAR", "MELHORAR"])
+    .optional(),
+  id_responsavel: z.string().trim().optional(),
+});
+
+const okrToolSchema = z.object({
+  id_resultado_chave: z.enum(["KR1", "KR2", "KR3", "KR4", "KR5", "KR6"]),
+  valor: z.number(),
+});
+
+const uiActionToolSchema = z.object({
+  acao: z.enum([
+    "navegar_aba",
+    "selecionar_cenario",
+    "aprovar_cenario",
+    "ajustar_simulador",
+    "aplicar_crashing",
+    "resetar_crashing",
+    "focar_bloco_3d",
+  ]),
+  section: z
+    .enum(["painel", "cenarios", "cronograma", "mapa3d", "riscos", "produto", "relatorios"])
+    .optional(),
+  scenarioId: z.string().trim().optional(),
+  adocao: z.number().int().min(40).max(100).optional(),
+  capacidade: z.number().int().min(50).max(100).optional(),
+  reserva: z.number().int().min(5).max(30).optional(),
+  reducoes_json: z.string().optional(),
+  blockId: z.string().trim().optional(),
+});
+
 export interface ToolExecResult {
   output: Record<string, unknown>;
   cacheHit: boolean;
   ragChunks: number;
   actionCreated: boolean;
+  dataMutated?: boolean;
+  uiAction?: LumiUiAction;
+}
+
+async function computeGovernanceLevel(params: {
+  custo: number;
+  prazo: number;
+  escopo: boolean;
+}): Promise<string> {
+  const alcadas = await queryReadOnly<{
+    nivel_decisor: string;
+    limite_custo_rs: number | null;
+    limite_prazo_du: number | null;
+    pode_alterar_escopo: string;
+  }>(
+    `SELECT nivel_decisor, limite_custo_rs, limite_prazo_du, pode_alterar_escopo
+     FROM lume_educacao.matriz_alcadas`
+  );
+
+  const gerente = alcadas.find((a) => a.nivel_decisor === "GERENTE");
+  const patroc = alcadas.find((a) => a.nivel_decisor === "PATROCINADOR");
+
+  if (
+    gerente &&
+    (!params.escopo || gerente.pode_alterar_escopo === "SIM") &&
+    (gerente.limite_custo_rs === null || params.custo <= gerente.limite_custo_rs) &&
+    (gerente.limite_prazo_du === null || params.prazo <= gerente.limite_prazo_du)
+  ) {
+    return "GERENTE";
+  }
+
+  if (
+    patroc &&
+    (!params.escopo || patroc.pode_alterar_escopo === "SIM") &&
+    (patroc.limite_custo_rs === null || params.custo <= patroc.limite_custo_rs) &&
+    (patroc.limite_prazo_du === null || params.prazo <= patroc.limite_prazo_du)
+  ) {
+    return "PATROCINADOR";
+  }
+
+  return "COMITE";
 }
 
 export async function executeToolCall(
@@ -183,36 +428,11 @@ export async function executeToolCall(
 ): Promise<ToolExecResult> {
   if (name === "registrar_acao_governanca") {
     const parsed = actionSchema.parse(rawArgs);
-    const alcadas = await queryReadOnly<{
-      nivel_decisor: string;
-      limite_custo_rs: number | null;
-      limite_prazo_du: number | null;
-      pode_alterar_escopo: string;
-    }>(`SELECT nivel_decisor, limite_custo_rs, limite_prazo_du, pode_alterar_escopo FROM lume_educacao.matriz_alcadas`);
-
-    const custo = parsed.impacto_custo_rs ?? 0;
-    const prazo = parsed.impacto_prazo_du ?? 0;
-    const escopo = parsed.altera_escopo ?? false;
-
-    const gerente = alcadas.find((a) => a.nivel_decisor === "GERENTE");
-    const patroc = alcadas.find((a) => a.nivel_decisor === "PATROCINADOR");
-
-    let governanceLevel = "COMITE";
-    if (
-      gerente &&
-      (!escopo || gerente.pode_alterar_escopo === "SIM") &&
-      (gerente.limite_custo_rs === null || custo <= gerente.limite_custo_rs) &&
-      (gerente.limite_prazo_du === null || prazo <= gerente.limite_prazo_du)
-    ) {
-      governanceLevel = "GERENTE";
-    } else if (
-      patroc &&
-      (!escopo || patroc.pode_alterar_escopo === "SIM") &&
-      (patroc.limite_custo_rs === null || custo <= patroc.limite_custo_rs) &&
-      (patroc.limite_prazo_du === null || prazo <= patroc.limite_prazo_du)
-    ) {
-      governanceLevel = "PATROCINADOR";
-    }
+    const governanceLevel = await computeGovernanceLevel({
+      custo: parsed.impacto_custo_rs ?? 0,
+      prazo: parsed.impacto_prazo_du ?? 0,
+      escopo: parsed.altera_escopo ?? false,
+    });
 
     const inserted = await query<{ id: string; created_at: string }>(
       `INSERT INTO lume_agent.agent_actions (conversation_id, action_type, payload, governance_level, status)
@@ -233,6 +453,322 @@ export async function executeToolCall(
       cacheHit: false,
       ragChunks: 0,
       actionCreated: true,
+      dataMutated: true,
+    };
+  }
+
+  if (name === "abrir_solicitacao_mudanca") {
+    const parsed = smSchema.parse(rawArgs);
+    const altersScope = parsed.altera_escopo ?? parsed.tipo_mudanca === "ESCOPO";
+    const governanceLevel = await computeGovernanceLevel({
+      custo: parsed.impacto_custo_rs,
+      prazo: parsed.impacto_prazo_du,
+      escopo: altersScope,
+    });
+
+    const [maxRow] = await queryReadOnly<{ max_num: number | null }>(
+      `SELECT MAX(NULLIF(regexp_replace(id_mudanca, '\\D', '', 'g'), '')::integer) AS max_num
+       FROM lume_educacao.mudancas_solicitacoes`
+    );
+    const nextId = `SM-${String((maxRow?.max_num ?? 14) + 1).padStart(3, "0")}`;
+
+    let validSolicitante: string | null = null;
+    if (parsed.id_solicitante) {
+      const rows = await queryReadOnly<{ id_parte: string }>(
+        `SELECT id_parte FROM lume_educacao.partes_interessadas WHERE UPPER(id_parte) = UPPER($1) LIMIT 1`,
+        [parsed.id_solicitante]
+      );
+      validSolicitante = rows[0]?.id_parte ?? null;
+    }
+
+    let validAtividade: string | null = null;
+    if (parsed.id_atividade) {
+      const rows = await queryReadOnly<{ id_atividade: string }>(
+        `SELECT id_atividade FROM lume_educacao.atividades WHERE UPPER(id_atividade) = UPPER($1) LIMIT 1`,
+        [parsed.id_atividade]
+      );
+      validAtividade = rows[0]?.id_atividade ?? null;
+    }
+
+    const [inserted] = await query(
+      `INSERT INTO lume_educacao.mudancas_solicitacoes (
+         id_mudanca, data_abertura, id_solicitante, descricao, tipo_mudanca, frente,
+         id_atividade, impacto_custo_rs, impacto_prazo_du, impacto_pontos,
+         status, nivel_decisor, implementada
+       ) VALUES (
+         $1, CURRENT_DATE, $2, $3, $4, $5,
+         $6, $7, $8, $9,
+         'EM_ANALISE', $10, 'NAO'
+       )
+       RETURNING *`,
+      [
+        nextId,
+        validSolicitante,
+        parsed.descricao,
+        parsed.tipo_mudanca,
+        parsed.frente,
+        validAtividade,
+        parsed.impacto_custo_rs,
+        parsed.impacto_prazo_du,
+        parsed.impacto_pontos,
+        governanceLevel,
+      ]
+    );
+
+    await query(
+      `INSERT INTO lume_agent.agent_actions (conversation_id, action_type, payload, governance_level, status)
+       VALUES ($1, 'SOLICITACAO_MUDANCA', $2::jsonb, $3, 'registrada')`,
+      [ctx.conversationId, JSON.stringify({ id_mudanca: nextId, ...parsed }), governanceLevel]
+    );
+
+    return {
+      output: {
+        ok: true,
+        id_mudanca: nextId,
+        status: "EM_ANALISE",
+        nivel_decisor: governanceLevel,
+        registro: inserted,
+      },
+      cacheHit: false,
+      ragChunks: 0,
+      actionCreated: true,
+      dataMutated: true,
+    };
+  }
+
+  if (name === "gerenciar_risco") {
+    const parsed = riskToolSchema.parse(rawArgs);
+
+    if (parsed.operacao === "atualizar_status") {
+      if (!parsed.id_risco || !parsed.status) {
+        throw new Error("Para atualizar um risco, informe id_risco e status.");
+      }
+      const riscoKey = parsed.id_risco.toUpperCase();
+      const rows = parsed.estrategia_resposta
+        ? await query(
+            `UPDATE lume_educacao.riscos_registro
+             SET status = $2, estrategia_resposta = $3
+             WHERE UPPER(id_risco) = $1
+             RETURNING *`,
+            [riscoKey, parsed.status, parsed.estrategia_resposta]
+          )
+        : await query(
+            `UPDATE lume_educacao.riscos_registro
+             SET status = $2
+             WHERE UPPER(id_risco) = $1
+             RETURNING *`,
+            [riscoKey, parsed.status]
+          );
+
+      if (rows.length === 0) {
+        throw new Error(`Risco ${riscoKey} não encontrado.`);
+      }
+
+      await query(
+        `INSERT INTO lume_agent.agent_actions (conversation_id, action_type, payload, governance_level, status)
+         VALUES ($1, 'PLANO_MITIGACAO', $2::jsonb, 'GERENTE', 'aplicada')`,
+        [ctx.conversationId, JSON.stringify({ operacao: "atualizar_status", id_risco: riscoKey, status: parsed.status })]
+      );
+
+      return {
+        output: { ok: true, risk: rows[0] },
+        cacheHit: false,
+        ragChunks: 0,
+        actionCreated: true,
+        dataMutated: true,
+      };
+    }
+
+    if (!parsed.descricao) {
+      throw new Error("Para criar um risco, informe a descrição.");
+    }
+
+    const [maxRow] = await queryReadOnly<{ max_num: number | null }>(
+      `SELECT MAX(NULLIF(regexp_replace(id_risco, '\\D', '', 'g'), '')::integer) AS max_num
+       FROM lume_educacao.riscos_registro`
+    );
+    const nextId = `R${String((maxRow?.max_num ?? 15) + 1).padStart(2, "0")}`;
+
+    let validResp: string | null = null;
+    if (parsed.id_responsavel) {
+      const eq = await queryReadOnly<{ id_pessoa: string }>(
+        `SELECT id_pessoa FROM lume_educacao.equipe WHERE UPPER(id_pessoa) = UPPER($1) LIMIT 1`,
+        [parsed.id_responsavel]
+      );
+      validResp = eq[0]?.id_pessoa ?? null;
+    }
+
+    const [inserted] = await query(
+      `INSERT INTO lume_educacao.riscos_registro (
+         id_risco, data_identificacao, tipo_risco, categoria, descricao,
+         probabilidade_pct, impacto_custo_rs, impacto_prazo_du, frente,
+         estrategia_resposta, id_responsavel, status
+       ) VALUES (
+         $1, CURRENT_DATE, 'AMEACA', $2, $3,
+         $4, $5, $6, $7,
+         $8, $9, 'ABERTO'
+       )
+       RETURNING *`,
+      [
+        nextId,
+        parsed.categoria ?? "TECNICO",
+        parsed.descricao,
+        Math.round(parsed.probabilidade_pct ?? 40),
+        parsed.impacto_custo_rs ?? 12000,
+        parsed.impacto_prazo_du ?? 0,
+        parsed.frente ?? "PROJETO",
+        parsed.estrategia_resposta ?? "MITIGAR",
+        validResp,
+      ]
+    );
+
+    await query(
+      `INSERT INTO lume_agent.agent_actions (conversation_id, action_type, payload, governance_level, status)
+       VALUES ($1, 'PLANO_MITIGACAO', $2::jsonb, 'GERENTE', 'aplicada')`,
+      [ctx.conversationId, JSON.stringify({ ...parsed, id_risco: nextId })]
+    );
+
+    return {
+      output: { ok: true, id_risco: nextId, risk: inserted },
+      cacheHit: false,
+      ragChunks: 0,
+      actionCreated: true,
+      dataMutated: true,
+    };
+  }
+
+  if (name === "atualizar_okr_piloto") {
+    const parsed = okrToolSchema.parse(rawArgs);
+    const metaRows = await queryReadOnly<{
+      id_objetivo: string;
+      objetivo: string;
+      id_resultado_chave: string;
+      resultado_chave: string;
+      unidade: string;
+      valor_base: number;
+      meta: number;
+      sentido: string;
+    }>(
+      `SELECT id_objetivo, objetivo, id_resultado_chave, resultado_chave,
+              unidade, valor_base, meta, sentido
+       FROM lume_educacao.okr_medicoes
+       WHERE id_resultado_chave = $1
+       ORDER BY data_medicao DESC
+       LIMIT 1`,
+      [parsed.id_resultado_chave]
+    );
+
+    const ref = metaRows[0];
+    if (!ref) {
+      throw new Error(`Resultado-chave ${parsed.id_resultado_chave} não encontrado.`);
+    }
+
+    const [updated] = await query(
+      `INSERT INTO lume_educacao.okr_medicoes (
+         id_objetivo, objetivo, id_resultado_chave, resultado_chave,
+         unidade, valor_base, meta, sentido, data_medicao, valor
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_DATE, $9)
+       ON CONFLICT (id_resultado_chave, data_medicao)
+       DO UPDATE SET valor = EXCLUDED.valor
+       RETURNING *`,
+      [
+        ref.id_objetivo,
+        ref.objetivo,
+        ref.id_resultado_chave,
+        ref.resultado_chave,
+        ref.unidade,
+        ref.valor_base,
+        ref.meta,
+        ref.sentido,
+        parsed.valor,
+      ]
+    );
+
+    await query(
+      `INSERT INTO lume_agent.agent_actions (conversation_id, action_type, payload, governance_level, status)
+       VALUES ($1, 'ATUALIZACAO_OKR', $2::jsonb, 'GERENTE', 'aplicada')`,
+      [ctx.conversationId, JSON.stringify(parsed)]
+    );
+
+    return {
+      output: { ok: true, kr: updated },
+      cacheHit: false,
+      ragChunks: 0,
+      actionCreated: true,
+      dataMutated: true,
+    };
+  }
+
+  if (name === "executar_acao_interface") {
+    const parsed = uiActionToolSchema.parse(rawArgs);
+    let uiAction: LumiUiAction;
+
+    switch (parsed.acao) {
+      case "navegar_aba": {
+        if (!parsed.section) {
+          throw new Error("Informe 'section' para navegar entre abas.");
+        }
+        uiAction = { type: "navigate_tab", section: parsed.section };
+        break;
+      }
+      case "selecionar_cenario": {
+        if (!parsed.scenarioId) {
+          throw new Error("Informe 'scenarioId' para selecionar o cenário.");
+        }
+        uiAction = { type: "select_scenario", scenarioId: parsed.scenarioId.toUpperCase() };
+        break;
+      }
+      case "aprovar_cenario": {
+        if (!parsed.scenarioId) {
+          throw new Error("Informe 'scenarioId' para aprovar o cenário.");
+        }
+        uiAction = { type: "approve_scenario", scenarioId: parsed.scenarioId.toUpperCase() };
+        break;
+      }
+      case "ajustar_simulador": {
+        uiAction = {
+          type: "update_simulator",
+          adocao: parsed.adocao,
+          capacidade: parsed.capacidade,
+          reserva: parsed.reserva,
+        };
+        break;
+      }
+      case "aplicar_crashing": {
+        if (!parsed.reducoes_json) {
+          throw new Error("Informe 'reducoes_json' (ex.: '{\"A10\": 2}') para aplicar Crashing.");
+        }
+        const rawMap = JSON.parse(parsed.reducoes_json) as Record<string, unknown>;
+        const reducoes: Record<string, number> = {};
+        for (const [k, v] of Object.entries(rawMap)) {
+          const num = Number(v);
+          if (Number.isFinite(num) && num >= 0) {
+            reducoes[k.toUpperCase()] = Math.round(num);
+          }
+        }
+        uiAction = { type: "apply_crashing", reducoes };
+        break;
+      }
+      case "resetar_crashing": {
+        uiAction = { type: "reset_crashing" };
+        break;
+      }
+      case "focar_bloco_3d": {
+        if (!parsed.blockId) {
+          throw new Error("Informe 'blockId' para focar no Mapa 3D.");
+        }
+        uiAction = { type: "focus_mapa3d_block", blockId: parsed.blockId };
+        break;
+      }
+    }
+
+    return {
+      output: { ok: true, queued_ui_action: uiAction },
+      cacheHit: false,
+      ragChunks: 0,
+      actionCreated: false,
+      dataMutated: false,
+      uiAction,
     };
   }
 
@@ -256,7 +792,6 @@ export async function executeToolCall(
     };
   }
 
-  // Remaining tools are cached read-only queries bound to dataFingerprint
   const cached = await getToolCache<Record<string, unknown>>(
     name,
     rawArgs,
