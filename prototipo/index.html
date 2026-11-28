@@ -191,13 +191,25 @@ const TODOS_CURSOS_FLAT = CURSOS_ENEM.flatMap(g => g.itens);
 const savedDark = (() => { try { return localStorage.getItem('lume_dark_mode') === '1'; } catch(e) { return false; } })();
 const savedKey  = (() => { try { return localStorage.getItem('lume_gemini_key') || ''; } catch(e) { return ''; } })();
 
+const URL_PARAMS = (() => {
+  try { return new URLSearchParams(window.location.search); }
+  catch (e) { return new URLSearchParams(); }
+})();
+const paramScreen = (URL_PARAMS.get('screen') || '').toUpperCase();
+const validParamScreen = /^T(0[0-9]|1[0-4])$/.test(paramScreen) ? paramScreen : null;
+const paramPure = URL_PARAMS.get('pure') === '1';
+const paramEmbed = URL_PARAMS.get('embed') === '1';
+const paramTheme = URL_PARAMS.get('theme');
+const paramDevice = URL_PARAMS.get('device');
+
 const STATE = {
-  screen: 'T00', // Começa na tela bonita de Login/Acesso rápido (com 1 clique já entra!)
+  screen: validParamScreen || 'T00', // Começa na tela bonita de Login/Acesso rápido (com 1 clique já entra!)
   date: '2026-11-13',
   scenario: 'C1',
-  device: window.innerWidth < 640 ? 'mobile-native' : 'web',
-  pureAppMode: false,
-  darkMode: savedDark,
+  device: paramDevice === 'android' ? 'android' : (paramDevice === 'web' ? 'web' : (window.innerWidth < 640 ? 'android' : 'web')),
+  pureAppMode: paramPure,
+  embedMode: paramEmbed,
+  darkMode: paramTheme === 'dark' ? true : (paramTheme === 'light' ? false : savedDark),
   mobileMenuOpen: false,
   galJornada: 'TODAS',
   galRelease: 'TODAS',
@@ -674,6 +686,12 @@ function toggleDrawer(open, customTelaId = null) {
 // ==============================================================================
 function renderTopDock() {
   const wrap = document.getElementById('pmo-dock-wrap');
+  if (STATE.embedMode && STATE.pureAppMode) {
+    wrap.innerHTML = '';
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = '';
   if (STATE.pureAppMode && STATE.screen !== 'T14') {
     wrap.innerHTML = `
       <div class="max-w-[1380px] mx-auto flex justify-end gap-2">
@@ -1763,6 +1781,26 @@ setInterval(() => {
 }, 1000);
 
 render();
+
+window.addEventListener('message', (event) => {
+  const data = event && event.data;
+  if (!data || data.type !== 'lume-proto-sync') return;
+  let changed = false;
+  if (data.theme === 'dark' && !STATE.darkMode) { STATE.darkMode = true; changed = true; }
+  if (data.theme === 'light' && STATE.darkMode) { STATE.darkMode = false; changed = true; }
+  if (typeof data.screen === 'string') {
+    const nextScreen = data.screen.toUpperCase();
+    if (/^T(0[0-9]|1[0-4])$/.test(nextScreen) && STATE.screen !== nextScreen) {
+      STATE.screen = nextScreen;
+      changed = true;
+    }
+  }
+  if ((data.device === 'web' || data.device === 'android') && STATE.device !== data.device) {
+    STATE.device = data.device;
+    changed = true;
+  }
+  if (changed) render();
+});
 </script>
 </body>
 </html>

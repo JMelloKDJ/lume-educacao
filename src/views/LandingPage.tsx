@@ -3,13 +3,13 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowLeft,
   ArrowRight,
   Check,
   CheckCircle2,
   ChevronDown,
   MessageSquare,
 } from 'lucide-react';
+import { ProductCoverflowShowcase } from '../components/produto/ProductCoverflowShowcase';
 import { PublicFooter } from '../components/public/public-footer';
 import { PublicNavbar, type AppScreen } from '../components/public/public-navbar';
 import {
@@ -19,12 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../components/ui/dialog';
-import { MockupCarousel } from '../components/ui/mockup-carousel';
-import {
-  PRODUCT_SLIDES,
-  PUBLIC_FAQ_ITEMS,
-  type ProductSlide,
-} from '../data/mock-project';
+import { PUBLIC_FAQ_ITEMS } from '../data/mock-project';
 import { cn } from '../lib/utils';
 
 interface LandingPageProps {
@@ -34,23 +29,7 @@ interface LandingPageProps {
 
 type PlanInquiryMode = 'completo' | 'escolas' | null;
 
-const LANDING_SLIDES: ProductSlide[] = PRODUCT_SLIDES.map((slide) => {
-  const subtitleByCode: Record<string, string> = {
-    T02: 'Metas diárias ajustadas ao ritmo do aluno',
-    T04: 'Aulas compactadas para conexão 3G',
-    T06: 'Diagnóstico comentado por competência',
-    T07: 'Correção por critério com feedback claro',
-    T09: 'Tira-dúvidas guiado passo a passo',
-    T10: 'Visão consolidada para professores e polos',
-  };
-  return {
-    ...slide,
-    shortSubtitle: subtitleByCode[slide.code] ?? slide.shortSubtitle,
-  };
-});
-
 export function LandingPage({ onNavigate, onOpenLumi }: LandingPageProps) {
-  const [carouselIndex, setCarouselIndex] = useState(0);
   const [openFaqId, setOpenFaqId] = useState<string>(PUBLIC_FAQ_ITEMS[0].id);
   const [inquiryMode, setInquiryMode] = useState<PlanInquiryMode>(null);
   const [leadName, setLeadName] = useState('');
@@ -80,16 +59,6 @@ export function LandingPage({ onNavigate, onOpenLumi }: LandingPageProps) {
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  };
-
-  const handlePrevSlide = () => {
-    setCarouselIndex(
-      (prev) => (prev - 1 + LANDING_SLIDES.length) % LANDING_SLIDES.length
-    );
-  };
-
-  const handleNextSlide = () => {
-    setCarouselIndex((prev) => (prev + 1) % LANDING_SLIDES.length);
   };
 
   return (
@@ -212,48 +181,22 @@ export function LandingPage({ onNavigate, onOpenLumi }: LandingPageProps) {
           </div>
         </section>
 
-        {/* NA PRÁTICA / O PRODUTO SECTION — controls in top-right outside card */}
+        {/* NA PRÁTICA / O PRODUTO SECTION — idêntica à aba Produto com o protótipo navegável R12 */}
         <section
           id="produto"
           className="scroll-mt-20 border-b border-[var(--border-subtle)] py-16 sm:py-24"
         >
           <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8">
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary)]">
-                  Na prática
-                </p>
-                <h2 className="mt-2 font-[var(--font-display)] text-2xl sm:text-[32px] font-bold tracking-tight text-[var(--text-primary)]">
-                  Uma plataforma desenhada para estudo contínuo
-                </h2>
-              </div>
-
-              <div className="flex items-center gap-2.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={handlePrevSlide}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/40 whitespace-nowrap cursor-pointer"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  <span>Anterior</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextSlide}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--brand-primary)] px-4 text-xs font-semibold text-white transition-colors hover:bg-[var(--brand-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]/50 whitespace-nowrap cursor-pointer"
-                >
-                  <span>Próximo</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
+            <div className="mb-8 max-w-2xl">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary)]">
+                Na prática · Protótipo Navegável
+              </p>
+              <h2 className="mt-2 font-[var(--font-display)] text-2xl sm:text-[32px] font-bold tracking-tight text-[var(--text-primary)]">
+                Uma plataforma desenhada para estudo contínuo
+              </h2>
             </div>
 
-            <MockupCarousel
-              slides={LANDING_SLIDES}
-              variant="landing"
-              activeIndex={carouselIndex}
-              onActiveIndexChange={setCarouselIndex}
-            />
+            <ProductCoverflowShowcase />
           </div>
         </section>
 
