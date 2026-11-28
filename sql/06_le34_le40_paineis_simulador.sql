@@ -65,7 +65,7 @@ select a.id_atividade, a.codigo_eap, a.nome_atividade, a.disciplina, a.tipo_ativ
        case when a.tipo_atividade = 'MARCO_AGIL' then a.duracao_fixa_du
             else ceil((a.duracao_otimista_du + 4 * a.duracao_mais_provavel_du + a.duracao_pessimista_du) / 6.0)::int end as duracao_lb_du,
        case when a.tipo_atividade = 'MARCO_AGIL' then 0
-            else round((a.duracao_pessimista_du - a.duracao_otimista_du) / 6.0, 3) end as desvio_padrao_du
+            else round(((a.duracao_pessimista_du - a.duracao_otimista_du) / 6.0)::numeric, 3) end as desvio_padrao_du
 from lume_educacao.atividades a;
 
 -- vínculo entre marcos ágeis e releases (A40 -> R1, A41 -> R2, A42 -> R3)
@@ -166,9 +166,9 @@ base as (
   select 'AGIL', (select v from ont_agil), (select v from vp_agil), (select v from va_agil),
          coalesce((select v from custos where frente = 'AGIL'), 0) + coalesce((select v from horas where tipo_item = 'SPRINT'), 0)),
 tudo as (select * from base union all select 'PROJETO', sum(ont), sum(vp), sum(va), sum(cr) from base)
-select frente, round(ont, 2), round(vp, 2), round(va, 2), round(cr, 2),
-       round(va / nullif(vp, 0), 4), round(va / nullif(cr, 0), 4), round(ont / nullif(va / nullif(cr, 0), 0), 2),
-       round((ont - va) / nullif(ont - cr, 0), 4), round(va - vp, 2), round(va - cr, 2)
+select frente, round((ont)::numeric, 2), round((vp)::numeric, 2), round((va)::numeric, 2), round((cr)::numeric, 2),
+       round((va / nullif(vp, 0))::numeric, 4), round((va / nullif(cr, 0))::numeric, 4), round((ont / nullif(va / nullif(cr, 0), 0))::numeric, 2),
+       round(((ont - va) / nullif(ont - cr, 0))::numeric, 4), round((va - vp)::numeric, 2), round((va - cr)::numeric, 2)
 from tudo
 $$;
 
@@ -191,7 +191,7 @@ order by m.data_ref, v.frente;
 create or replace view lume_educacao.le34_40_vw_folha_pessoas as
 select e.id_pessoa, e.nome, e.papel, e.frente, e.disciplina, e.senioridade, f.vinculo, e.alocacao_pct, e.data_entrada, e.data_saida,
        f.remuneracao_mensal_rs, f.encargos_pct, f.beneficios_mensais_rs, f.horas_mensais,
-       round(f.remuneracao_mensal_rs * (1 + f.encargos_pct / 100.0) + f.beneficios_mensais_rs, 2) as custo_mensal_rs,
+       round((f.remuneracao_mensal_rs * (1 + f.encargos_pct / 100.0) + f.beneficios_mensais_rs)::numeric, 2) as custo_mensal_rs,
        round((f.remuneracao_mensal_rs * (1 + f.encargos_pct / 100.0) + f.beneficios_mensais_rs) / f.horas_mensais) as custo_hora_calculado,
        e.custo_hora_rs as custo_hora_tabela04,
        round((f.remuneracao_mensal_rs * (1 + f.encargos_pct / 100.0) + f.beneficios_mensais_rs) / f.horas_mensais) = e.custo_hora_rs as custo_hora_confere,
@@ -219,14 +219,14 @@ select b.id_pessoa, b.nome, b.papel, b.frente, b.mes,
        al.horas_planejadas as horas_planejadas_h,
        coalesce(ap.hn, 0) as horas_normais_h, coalesce(ap.he, 0) as horas_extras_h,
        coalesce(ap.hn, 0) + coalesce(ap.he, 0) as horas_apontadas_h,
-       round((coalesce(ap.hn, 0) + coalesce(ap.he, 0)) / nullif(b.du_no_projeto * lume_educacao.le34_40_fn_param_num('horas_por_dia') * b.alocacao_pct / 100.0, 0) * 100, 1) as utilizacao_pct,
+       round(((coalesce(ap.hn, 0) + coalesce(ap.he, 0)) / nullif(b.du_no_projeto * lume_educacao.le34_40_fn_param_num('horas_por_dia') * b.alocacao_pct / 100.0, 0) * 100)::numeric, 1) as utilizacao_pct,
        coalesce(ap.hn, 0) + coalesce(ap.he, 0) - al.horas_planejadas as desvio_alocacao_h,
-       round((coalesce(ap.hn, 0) + coalesce(ap.he, 0) - al.horas_planejadas) / nullif(al.horas_planejadas, 0) * 100, 1) as desvio_alocacao_pct,
+       round(((coalesce(ap.hn, 0) + coalesce(ap.he, 0) - al.horas_planejadas) / nullif(al.horas_planejadas, 0) * 100)::numeric, 1) as desvio_alocacao_pct,
        case when al.horas_planejadas is null then null
             when al.horas_planejadas = 0 then (coalesce(ap.hn, 0) + coalesce(ap.he, 0)) > 0
             else abs(coalesce(ap.hn, 0) + coalesce(ap.he, 0) - al.horas_planejadas) / al.horas_planejadas > 0.20 end as alerta_desvio_20pct,
-       round(coalesce(ap.hn, 0) * b.custo_hora_tabela04 + coalesce(ap.he, 0) * b.custo_hora_tabela04 * lume_educacao.le34_40_fn_param_num('fator_hora_extra'), 2) as custo_horas_rs,
-       round(b.custo_mensal_rs * b.du_no_projeto::numeric / nullif(b.du_mes, 0), 2) as custo_folha_rs
+       round((coalesce(ap.hn, 0) * b.custo_hora_tabela04 + coalesce(ap.he, 0) * b.custo_hora_tabela04 * lume_educacao.le34_40_fn_param_num('fator_hora_extra'))::numeric, 2) as custo_horas_rs,
+       round((b.custo_mensal_rs * b.du_no_projeto::numeric / nullif(b.du_mes, 0))::numeric, 2) as custo_folha_rs
 from base b
 left join lume_educacao.alocacao_planejada al on al.id_pessoa = b.id_pessoa and al.mes = b.mes
 left join ap on ap.id_pessoa = b.id_pessoa and ap.mes = b.mes
@@ -236,9 +236,9 @@ where b.du_no_projeto > 0;
 create or replace view lume_educacao.le34_40_vw_capacidade_folha_mensal as
 select mes, frente, bool_and(mes_fechado) as mes_fechado, count(distinct id_pessoa) as pessoas,
        sum(capacidade_h) as capacidade_h, sum(horas_planejadas_h) as horas_planejadas_h, sum(horas_apontadas_h) as horas_apontadas_h,
-       round(sum(horas_apontadas_h) / nullif(sum(capacidade_h), 0) * 100, 1) as utilizacao_pct,
+       round((sum(horas_apontadas_h) / nullif(sum(capacidade_h), 0) * 100)::numeric, 1) as utilizacao_pct,
        sum(custo_folha_rs) as custo_folha_rs, sum(custo_horas_rs) as custo_horas_apontadas_rs,
-       round(sum(custo_horas_rs) / nullif(sum(custo_folha_rs), 0) * 100, 1) as folha_apropriada_pct,
+       round((sum(custo_horas_rs) / nullif(sum(custo_folha_rs), 0) * 100)::numeric, 1) as folha_apropriada_pct,
        count(*) filter (where alerta_desvio_20pct and mes_fechado) as pessoas_com_desvio_20pct
 from lume_educacao.le34_40_vw_capacidade_pessoa_mes group by mes, frente order by mes, frente;
 
@@ -247,7 +247,7 @@ create or replace view lume_educacao.le34_40_vw_capacidade_pessoa_resumo as
 select id_pessoa, nome, papel, frente,
        sum(capacidade_h) filter (where mes_fechado) as capacidade_h, sum(horas_planejadas_h) filter (where mes_fechado) as planejadas_h,
        sum(horas_apontadas_h) filter (where mes_fechado) as apontadas_h, sum(horas_extras_h) as horas_extras_h,
-       round(sum(horas_apontadas_h) filter (where mes_fechado) / nullif(sum(capacidade_h) filter (where mes_fechado), 0) * 100, 1) as utilizacao_pct,
+       round((sum(horas_apontadas_h) filter (where mes_fechado) / nullif(sum(capacidade_h) filter (where mes_fechado), 0) * 100)::numeric, 1) as utilizacao_pct,
        count(*) filter (where alerta_desvio_20pct and mes_fechado) as meses_com_desvio_20pct,
        sum(custo_horas_rs) as custo_horas_rs, sum(custo_folha_rs) as custo_folha_rs,
        case when sum(horas_apontadas_h) filter (where mes_fechado) > 1.2 * nullif(sum(horas_planejadas_h) filter (where mes_fechado), 0) then 'SOBRECARREGADO'
@@ -266,10 +266,10 @@ acc as (
   from p group by id_atividade)
 select r.id_atividade, a.nome_atividade, r.servico, r.unidade, r.quantidade_total, r.produtividade_planejada, r.equipe_planejada_pessoas,
        r.id_contrato, coalesce(acc.executado, 0) as executado, coalesce(acc.hh, 0) as hh_trabalhadas, acc.ultima_semana,
-       round(acc.executado / nullif(acc.hh, 0), 4) as produtividade_real,
-       round(acc.executado / nullif(acc.hh, 0) / r.produtividade_planejada, 3) as indice_produtividade,
-       round(acc.efetivo_3s, 2) as efetivo_medio_3_semanas,
-       round(acc.efetivo_3s / r.equipe_planejada_pessoas, 3) as indice_efetivo,
+       round((acc.executado / nullif(acc.hh, 0))::numeric, 4) as produtividade_real,
+       round((acc.executado / nullif(acc.hh, 0) / r.produtividade_planejada)::numeric, 3) as indice_produtividade,
+       round((acc.efetivo_3s)::numeric, 2) as efetivo_medio_3_semanas,
+       round((acc.efetivo_3s / r.equipe_planejada_pessoas)::numeric, 3) as indice_efetivo,
        greatest(0, r.quantidade_total - coalesce(acc.executado, 0)) as quantidade_restante,
        ceil(greatest(0, r.quantidade_total - coalesce(acc.executado, 0))
             / nullif(acc.executado / nullif(acc.hh, 0) * acc.efetivo_3s * lume_educacao.le34_40_fn_param_num('horas_por_dia'), 0))::int as duracao_restante_du,
@@ -292,9 +292,9 @@ with h as (select id_pessoa, sum(horas_normais + horas_extras) horas,
 pts as (select id_responsavel id_pessoa, sum(pontos) pontos, count(*) itens from lume_educacao.backlog_itens where status = 'CONCLUIDO' group by 1)
 select fp.id_pessoa, fp.nome, fp.papel, fp.senioridade, fp.vinculo, fp.custo_hora_tabela04,
        coalesce(pts.pontos, 0) as pontos_concluidos, coalesce(pts.itens, 0) as itens_concluidos, coalesce(h.horas, 0) as horas_sprint,
-       round(coalesce(pts.pontos, 0) / nullif(h.horas, 0), 4) as pontos_por_hora,
-       round(h.horas_ponderadas * fp.custo_hora_tabela04, 2) as custo_horas_rs,
-       round(h.horas_ponderadas * fp.custo_hora_tabela04 / nullif(pts.pontos, 0), 2) as custo_por_ponto_rs
+       round((coalesce(pts.pontos, 0) / nullif(h.horas, 0))::numeric, 4) as pontos_por_hora,
+       round((h.horas_ponderadas * fp.custo_hora_tabela04)::numeric, 2) as custo_horas_rs,
+       round((h.horas_ponderadas * fp.custo_hora_tabela04 / nullif(pts.pontos, 0))::numeric, 2) as custo_por_ponto_rs
 from lume_educacao.le34_40_vw_folha_pessoas fp left join h using (id_pessoa) left join pts using (id_pessoa)
 where fp.frente = 'AGIL'
 order by fp.id_pessoa;
@@ -314,13 +314,13 @@ ult as (select distinct on (id_atividade) id_atividade, situacao from lume_educa
 select r.id_risco, r.tipo_risco, r.categoria, r.descricao, r.causa, r.frente, r.id_atividade, r.estrategia_resposta,
        r.custo_resposta_rs, r.id_responsavel, e.nome as responsavel, r.status, r.data_identificacao,
        r.probabilidade_pct, r.impacto_custo_rs, r.impacto_prazo_du,
-       round(r.probabilidade_pct / 100.0 * r.impacto_custo_rs, 2) as vme_rs,
-       round(r.probabilidade_pct / 100.0 * r.impacto_prazo_du, 2) as vme_prazo_du,
+       round((r.probabilidade_pct / 100.0 * r.impacto_custo_rs)::numeric, 2) as vme_rs,
+       round((r.probabilidade_pct / 100.0 * r.impacto_prazo_du)::numeric, 2) as vme_prazo_du,
        case when r.probabilidade_pct <= 10 then 1 when r.probabilidade_pct <= 30 then 2 when r.probabilidade_pct <= 50 then 3
             when r.probabilidade_pct <= 70 then 4 else 5 end as faixa_probabilidade,
        case when abs(r.impacto_custo_rs) / o.ont_projeto < 0.0025 then 1 when abs(r.impacto_custo_rs) / o.ont_projeto < 0.005 then 2
             when abs(r.impacto_custo_rs) / o.ont_projeto < 0.01 then 3 when abs(r.impacto_custo_rs) / o.ont_projeto <= 0.02 then 4 else 5 end as faixa_impacto,
-       round(abs(r.impacto_custo_rs) / o.ont_projeto * 100, 3) as impacto_pct_ont,
+       round((abs(r.impacto_custo_rs) / o.ont_projeto * 100)::numeric, 3) as impacto_pct_ont,
        u.situacao as situacao_atividade,
        (r.status = 'ABERTO' and u.situacao = 'CONCLUIDA') as revisar_encerramento,
        (select count(*) from lume_educacao.riscos_ocorrencias oc where oc.id_risco = r.id_risco) as ocorrencias
@@ -354,8 +354,8 @@ select lume_educacao.le34_40_fn_param_num('reserva_de_contingencia_rs') as reser
        lume_educacao.le34_40_fn_param_num('reserva_gerencial_rs') - oc.imprevistos as gerencial_saldo,
        ex.exposicao_ameacas, ex.vme_oportunidades, ex.exposicao_ameacas + ex.vme_oportunidades as exposicao_liquida,
        ex.exposicao_prazo_du, ex.ameacas_abertas, ex.custo_respostas_abertas, ex.riscos_a_revisar,
-       round((lume_educacao.le34_40_fn_param_num('reserva_de_contingencia_rs') - oc.riscos_identificados) / nullif(ex.exposicao_ameacas, 0) * 100, 1) as cobertura_saldo_pct,
-       round(lume_educacao.le34_40_fn_param_num('reserva_de_contingencia_rs') / nullif(ex.exposicao_ameacas, 0) * 100, 1) as cobertura_reserva_original_pct,
+       round(((lume_educacao.le34_40_fn_param_num('reserva_de_contingencia_rs') - oc.riscos_identificados) / nullif(ex.exposicao_ameacas, 0) * 100)::numeric, 1) as cobertura_saldo_pct,
+       round((lume_educacao.le34_40_fn_param_num('reserva_de_contingencia_rs') / nullif(ex.exposicao_ameacas, 0) * 100)::numeric, 1) as cobertura_reserva_original_pct,
        (lume_educacao.le34_40_fn_param_num('reserva_de_contingencia_rs') - oc.riscos_identificados) >= ex.exposicao_ameacas as reserva_cobre_exposicao,
        oc.ocorrencias, oc.atraso_ocorrencias_du, mud.mudancas_aprovadas
 from oc, ex, mud;
@@ -386,8 +386,8 @@ create or replace view lume_educacao.le34_40_vw_escopo_sem_controle as
 select b.id_solicitante, p.parte_interessada, count(*) as itens, sum(b.pontos) as pontos,
        count(*) filter (where b.status = 'CONCLUIDO') as itens_concluidos,
        sum(b.pontos) filter (where b.status = 'CONCLUIDO') as pontos_concluidos,
-       round(sum(b.pontos) * (select avg(cpp) from (select (select cr from lume_educacao.le34_40_fn_valor_agregado(lume_educacao.le34_40_fn_data_status()) where frente = 'AGIL')
-             / nullif((select sum(pontos) from lume_educacao.backlog_itens where status = 'CONCLUIDO'), 0) cpp) t), 2) as custo_estimado_rs,
+       round((sum(b.pontos) * (select avg(cpp) from (select (select cr from lume_educacao.le34_40_fn_valor_agregado(lume_educacao.le34_40_fn_data_status()) where frente = 'AGIL')
+             / nullif((select sum(pontos) from lume_educacao.backlog_itens where status = 'CONCLUIDO'), 0) cpp) t))::numeric, 2) as custo_estimado_rs,
        string_agg(b.id_item, ', ' order by b.id_item) as itens_ids
 from lume_educacao.backlog_itens b left join lume_educacao.partes_interessadas p on p.id_parte = b.id_solicitante
 where b.origem = 'PEDIDO_DIRETO' group by b.id_solicitante, p.parte_interessada;
@@ -401,7 +401,7 @@ select p.id_parte, p.parte_interessada, p.contato, p.papel_no_projeto, p.tipo, p
             when p.interesse >= 4 then 'MANTER_INFORMADO' else 'MONITORAR' end as quadrante,
        p.engajamento_inicial, p.engajamento_desejado, a.nivel_engajamento as engajamento_atual, a.mes as mes_avaliacao,
        a.satisfacao as satisfacao_atual, ant.satisfacao as satisfacao_mes_anterior,
-       round(a.satisfacao - ant.satisfacao, 1) as variacao_satisfacao, a.interacoes_no_mes,
+       round((a.satisfacao - ant.satisfacao)::numeric, 1) as variacao_satisfacao, a.interacoes_no_mes,
        nd.ordem - na.ordem as lacuna_engajamento,
        (nd.ordem - na.ordem) > 0 as abaixo_do_desejado
 from lume_educacao.partes_interessadas p
@@ -607,7 +607,7 @@ begin
   v_lb_fim := lume_educacao.le34_40_fn_data_du(v_gat_du);
   v_contrato := lume_educacao.le34_40_fn_param_data('data_termino_contratual');
   v_du_alem := greatest(0, v_term_du - lume_educacao.le34_40_fn_du(v_contrato));
-  v_meses := round(greatest(0, v_term - v_lb_fim) / 30.4, 2);
+  v_meses := round((greatest(0, v_term - v_lb_fim) / 30.4)::numeric, 2);
 
   -- custo (convenção 22)
   select va.ent into v_ent from lume_educacao.le34_40_fn_valor_agregado(v_status) va where va.frente = 'PROJETO';
@@ -626,7 +626,7 @@ begin
   if v_parc > 0 and v_gat is not null then
     select p.termino_du into v_gat_du from lume_educacao.le34_40_fn_previsao_rede(cen, lume_educacao.le34_40_fn_du(v_d2), lume_educacao.le34_40_fn_du(v_d3)) p where p.id_atividade = v_gat;
     v_gat_dt := lume_educacao.le34_40_fn_data_du(v_gat_du);
-    v_meses_ef := round(v_parc / 100.0 * ((v_gat_dt - v_lb_fim) / 30.4) + (1 - v_parc / 100.0) * v_meses, 2);
+    v_meses_ef := round((v_parc / 100.0 * ((v_gat_dt - v_lb_fim) / 30.4) + (1 - v_parc / 100.0) * v_meses)::numeric, 2);
   end if;
 
   -- valor (convenção 23)
@@ -634,7 +634,7 @@ begin
   for ano in select * from lume_educacao.caso_de_negocio order by ano loop
     f := ano.beneficio_bruto_rs * (1 + v_varb / 100.0)
          - (ano.custo_operacional_rs + case when ano.ano >= 1 then v_varc else 0 end)
-         - (ano.investimento_rs + case when ano.ano = 0 then round(v_ent + v_add + (v_inc - v_exc) * v_cpp + v_rec + v_inv, 2) - v_ont else 0 end);
+         - (ano.investimento_rs + case when ano.ano = 0 then round((v_ent + v_add + (v_inc - v_exc) * v_cpp + v_rec + v_inv)::numeric, 2) - v_ont else 0 end);
     if ano.ano = 1 then
       v_atraso := f * v_meses_ef / 12.0;
       f := f - v_atraso;
@@ -643,18 +643,18 @@ begin
     if v_pay is null and ano.ano > 0 and v_acum >= 0 and v_ant < 0 then v_pay := (ano.ano - 1) + (-v_ant) / f; end if;
     v_vpl := v_vpl + f / power(1 + v_tma, ano.ano);
     v_benef_tot := v_benef_tot + f;
-    v_fluxo := v_fluxo || jsonb_build_object('ano', ano.ano, 'fluxo', round(f, 2), 'acumulado', round(v_acum, 2),
-                                             'descontado', round(f / power(1 + v_tma, ano.ano), 2));
+    v_fluxo := v_fluxo || jsonb_build_object('ano', ano.ano, 'fluxo', round((f)::numeric, 2), 'acumulado', round((v_acum)::numeric, 2),
+                                             'descontado', round((f / power(1 + v_tma, ano.ano))::numeric, 2));
   end loop;
 
   return query select array_to_string(cen, '+'), v_nomes, v_valida,
-    round(v_vel, 2), v_ganho, v_r2, v_r3, v_s2, v_s3, v_d2, v_d3,
+    round((v_vel)::numeric, 2), v_ganho, v_r2, v_r3, v_s2, v_s3, v_d2, v_d3,
     lume_educacao.le34_40_fn_data_du(v_op_du), v_term, v_du_alem, v_meses,
-    v_ent, v_add, v_inc, v_exc, round(v_cpp, 2), v_rec, v_inv,
-    round(v_ent + v_add + (v_inc - v_exc) * v_cpp + v_rec + v_inv, 0),
+    v_ent, v_add, v_inc, v_exc, round((v_cpp)::numeric, 2), v_rec, v_inv,
+    round((v_ent + v_add + (v_inc - v_exc) * v_cpp + v_rec + v_inv)::numeric, 0),
     v_varb, v_varc, v_parc, v_gat_dt, v_meses_ef,
-    round(v_vpl, 2), round(v_pay, 2), v_du_alem * lume_educacao.le34_40_fn_param_num('custo_do_atraso_por_du_rs'),
-    round(v_vpl - v_du_alem * lume_educacao.le34_40_fn_param_num('custo_do_atraso_por_du_rs'), 2), round(v_benef_tot, 2), v_fluxo;
+    round((v_vpl)::numeric, 2), round((v_pay)::numeric, 2), v_du_alem * lume_educacao.le34_40_fn_param_num('custo_do_atraso_por_du_rs'),
+    round((v_vpl - v_du_alem * lume_educacao.le34_40_fn_param_num('custo_do_atraso_por_du_rs'))::numeric, 2), round((v_benef_tot)::numeric, 2), v_fluxo;
 end $$;
 
 create or replace view lume_educacao.vw_simulacao_cenarios as
