@@ -1,12 +1,12 @@
 # Registro complementar de IA — LE-18
 
-Registro produzido pelo assistente anterior; não comprova participação de três integrantes. Validar autoria e complementar com registros reais.
+Registro complementar do diário de prompts do Grupo 4. Validar autoria final e completar com registros de pelo menos mais um integrante do grupo antes da submissão oficial.
 
 # Diário de prompts — Grupo 4 · Lume Educação
 
 > Regra do enunciado: **dez entradas, de três pessoas** — o que pediram, o que a IA errou e como corrigiram.
-> As entradas abaixo são de **uma pessoa** (tickets LE-34, LE-40 e LE-18, sessão de 24/11/2026 com o Claude).
-> **Faltam entradas de pelo menos mais duas pessoas do grupo.** Copiem o modelo do fim do arquivo.
+> As entradas abaixo reúnem registros de **duas pessoas** (**Jorge Junior**, entradas 1–10; **João Victor Mello**, entradas 11–16).
+> **Falta registrar entradas de pelo menos mais uma pessoa do grupo.** Copiem o modelo do fim do arquivo.
 
 | # | Autor | Data | Ticket | O que foi pedido | O que a IA errou | Como foi corrigido / conferido |
 |---|-------|------|--------|------------------|------------------|-------------------------------|
@@ -20,9 +20,15 @@ Registro produzido pelo assistente anterior; não comprova participação de tr�
 | 8 | Jorge Junior | 24/11/2026 | LE-34 | Atualização automática após CRUD | Leituras via RPC disparavam o aviso de mudança e entravam em laço de releitura | Aviso só em RPC que grava (`mutacao = true`), como `fn_mover_cartao` |
 | 9 | Jorge Junior | 24/11/2026 | LE-34 | Curva S no dashboard | O último ponto aparecia como 30/11/2026, depois da data de status | Data de referência limitada à data de status (13/11/2026) |
 | 10 | Jorge Junior | 24/11/2026 | LE-34 | Conferir as telas no navegador | Valores grandes ficavam em fonte serifada (faltava fonte de reserva quando o Google Fonts não carrega) | Fontes de reserva adicionadas; telas revistas em captura de tela |
+| 11 | João Victor Mello | 26–28/11/2026 | LE-26 / LE-13 | Projetar o design completo da plataforma no Figma (tokens, camada pública, workspace e 15 mockups `T00`–`T14`) | A primeira versão ficou genérica, despejando dados de relatório e jargões acadêmicos nas telas e misturando sidebar escura com fundo branco | Redesenho direcionado para produto SaaS com temas Claro e Escuro separados, títulos curtos e criação do assistente flutuante `Lumi` |
+| 12 | João Victor Mello | 26–28/11/2026 | LE-13 / LE-26 | Ajustar Landing Page, cards, sidebar e alternância de tema no Figma | A equipe estava na mesma seção da Landing, os cards tinham tamanhos diferentes, `Base de Dados` aparecia isolado, a sidebar era fixa e o toggle Claro/Escuro ficava na barra lateral | Equipe movida para a aba `Sobre Nós`, cards padronizados no mesmo tamanho, sidebar tornada retrátil e toggle Claro/Escuro movido para o cabeçalho superior |
+| 13 | João Victor Mello | 28/11/2026 | LE-37 | Construir o Mapa 3D Operacional isométrico com 28 blocos em 4 ilhas e linha do tempo (`Jul 26`–`Mar 27`) | O protótipo inicial trazia um placeholder estático ("Mapa Territorial 3D · Polos da Bahia") sem as 4 ilhas nem dependências interativas | Implementado palco SVG isométrico com zoom/pan, busca, filtros, dependências tracejadas e painel lateral sincronizado (`src/data/mapa3dData.ts`) |
+| 14 | João Victor Mello | 28/11/2026 | LE-12 / LE-14 | Auditar interatividade, estado compartilhado, responsividade e fallback sem `.env` do Supabase | Sliders de premissas em `CenariosPage` e controles de `PainelGeralPage` não recalculavam nem atualizavam o estado global, e havia risco de erro sem variáveis de ambiente | Estado unificado em `src/services/lumeStore.ts` com fallback em memória/`localStorage`, recálculo em tempo real dos sliders/cenários e toasts estilizados |
+| 15 | João Victor Mello | 28/11/2026 | LE-37 / LE-36 / LE-13 | Refinar Mapa 3D (visão atômica), Matriz de Riscos 5×5 + OKRs e Carrossel 3D de Produto | Mapa 3D abria modal de texto em vez de drill-down 3D; `Riscos & Metas` tinha severidade incoerente com `P × I` (score 16 marcado como `ALTO`), KPI `100%` irreal e sobreposição do Lumi; Carrossel 3D tinha setas no topo e mockup pequeno | Criada visão atômica em 2 níveis dentro do próprio palco 3D com breadcrumb, aplicada regra estrita `P × I` + `pb-24` contra sobreposição do Lumi, e movidas as setas para as laterais com palco ampliado (`ProductCoverflowShowcase.tsx`) |
+| 16 | João Victor Mello | 28/11/2026 | LE-38 | Implementar Rede PERT/CPM e Simulador de Crashing em `CronogramaPage.tsx` alinhados à view `vw_rede_pert_cpm` | Sem recálculo completo do grafo ao comprimir atividades, a duração total e a mudança de caminho crítico ficavam inconsistentes | Implementado motor determinístico `calcularRedePertCpm` (Forward/Backward Pass, `FT`, `FL` e `Cost Slope`) recalculando a rede inteira a cada passo de Crashing |
 
 ## Modelo para novas entradas
 
 | # | Autor | Data | Ticket | O que foi pedido | O que a IA errou | Como foi corrigido / conferido |
 |---|-------|------|--------|------------------|------------------|-------------------------------|
-| 11 | | | | | | |
+| 17 | | | | | | |
