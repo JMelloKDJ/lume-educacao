@@ -5,6 +5,7 @@ import { ClipboardList, Download, FileSpreadsheet, TrendingUp } from 'lucide-rea
 import type { NavSectionId } from '../components/layout/sidebar';
 import type { ScenarioItem } from '../data/workspaceData';
 import { useLumeStore } from '../services/lumeStore';
+import { EngenhariaLive } from '@/components/EngenhariaLive';
 import { CenariosPage } from './app/CenariosPage';
 import { CronogramaPage } from './app/CronogramaPage';
 import { Mapa3DPage } from './app/Mapa3DPage';
@@ -37,7 +38,7 @@ export function Round1Demo({
   } = useLumeStore();
 
   if (activeSection === 'painel') {
-    return <PainelGeralPage onSelectSection={onSelectSection} />;
+    return <><PainelGeralPage onSelectSection={onSelectSection} /><EngenhariaLive /></>;
   }
 
   if (activeSection === 'cenarios') {
@@ -47,7 +48,7 @@ export function Round1Demo({
         `Meta definida para ${scenario.prazoFinal} com retorno estimado de ${scenario.retornoLabel}.`
       );
     };
-    return <CenariosPage onApproveScenario={handleApproveScenario} />;
+    return <><CenariosPage onApproveScenario={handleApproveScenario} /><EngenhariaLive simulador /></>;
   }
 
   if (activeSection === 'cronograma') {
